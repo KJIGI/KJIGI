@@ -234,8 +234,8 @@ const ALL_EMOJIS=Object.values(EMOJI_CATS).flat();
 
 const SUBCATS={restaurant:['한식','중식','일식','치킨/피자','분식','양식','술집/포차'],massage:['타이마사지','스웨디시','발마사지','한방마사지','아로마'],cafe:['카페','베이커리','디저트/기타'],beauty:['헤어','네일','피부관리'],medical:['내과/외과','치과','피부과'],shopping:['의류/패션','화장품','생활용품'],hotel:['호텔','게스트하우스/펜션']};
 const DEFAULT_CATS=[{id:'restaurant',ic:'🍽️',ko:'레스토랑',en:'Restaurant'},{id:'massage',ic:'💆',ko:'마사지/스파',en:'Massage/Spa'},{id:'hotel',ic:'🏨',ko:'호텔/숙박',en:'Hotel'},{id:'mart',ic:'🛒',ko:'마트/슈퍼',en:'Mart'},{id:'exchange',ic:'💱',ko:'환전',en:'Exchange'},{id:'karaoke',ic:'🎤',ko:'노래방',en:'Karaoke'},{id:'beauty',ic:'💇',ko:'미용/네일',en:'Beauty'},{id:'medical',ic:'🏥',ko:'의료',en:'Medical'},{id:'travel',ic:'✈️',ko:'여행사',en:'Travel'},{id:'realestate',ic:'🏠',ko:'부동산',en:'Real Estate'},{id:'auto',ic:'🚗',ko:'자동차',en:'Auto'},{id:'legal',ic:'⚖️',ko:'법률/회계',en:'Legal'},{id:'shopping',ic:'🛍️',ko:'쇼핑',en:'Shopping'},{id:'education',ic:'📚',ko:'교육',en:'Education'},{id:'cafe',ic:'☕',ko:'카페/베이커리',en:'Cafe'},{id:'etc',ic:'📌',ko:'기타',en:'Others'}];
-const AREAS=[{id:'all',ko:'전체',en:'All'},{id:'clark',ko:'클락',en:'Clark'},{id:'angeles',ko:'앙헬레스',en:'Angeles'},{id:'mabalacat',ko:'마발라캣',en:'Mabalacat'}];
-const an_area=id=>{const a=S?.areas?.find(x=>x.id===id)||AREAS.find(x=>x.id===id);return a?t(a.ko,a.en):id;};
+const DEFAULT_AREAS=[{id:'all',ko:'전체',en:'All'},{id:'clark',ko:'클락',en:'Clark'},{id:'angeles',ko:'앙헬레스',en:'Angeles'},{id:'mabalacat',ko:'마발라캣',en:'Mabalacat'}];
+const AREAS=DEFAULT_AREAS;
 const GR=['linear-gradient(135deg,#1e3a8a,#2563eb)','linear-gradient(135deg,#7c3aed,#a855f7)','linear-gradient(135deg,#065f46,#059669)','linear-gradient(135deg,#9a3412,#ea580c)','linear-gradient(135deg,#1e293b,#334155)','linear-gradient(135deg,#0c4a6e,#0284c7)'];
 const DEFAULT_NOTICES=[
   {id:1,pinned:true,titleKo:'🎉 K지기 베타 오픈 안내',titleEn:'🎉 K지기 Beta Launch',bodyKo:'클락/앙헬레스 한인 업소 종합 가이드 K지기가 베타 서비스를 시작했습니다!\n\n현재 무료로 업체 등록을 받고 있으니 많은 참여 부탁드립니다.\n\n📌 무료 등록 기간: 2025년 하반기까지',bodyEn:'K지기, your trusted Korean business guide for Clark/Angeles, has launched beta!',date:'2025-03-01'},
@@ -307,7 +307,7 @@ const S={lang:'ko',screen:'home',area:'all',cat:null,subcat:null,q:'',bizs:[...S
 const t=(ko,en)=>S.lang==='ko'?ko:en;
 const catOf=id=>S.cats.find(c=>c.id===id)||{ic:'📌',ko:'기타',en:'Others'};
 const ci=id=>catOf(id).ic; const cn=id=>t(catOf(id).ko,catOf(id).en);
-const an=id=>{const a=S.areas.find(x=>x.id===id);return a?t(a.ko,a.en):id;};
+const an=id=>{const areas=typeof S!=='undefined'?S.areas:AREAS;const a=areas.find(x=>x.id===id);return a?t(a.ko,a.en):id;};
 const nm=b=>b.nKo;
 const fmtDate=d=>{try{return new Date(d).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});}catch{return d;}};
 const today=()=>new Date().toISOString().slice(0,10);
@@ -355,8 +355,10 @@ function expiryBadge(b){
 
 // ══ TIERED LIST ═══════════════════════════════════════════════
 function renderTiered(list){
-  const prem=list.filter(b=>b.tier==='premium'),std=list.filter(b=>b.tier==='standard'),free=list.filter(b=>b.tier==='free');
-  if(!list.length)return`<div class="empty"><div class="empty-ic">🔍</div><p>${t('업체가 없습니다','No results')}</p></div>`;
+  if(!list||!list.length)return`<div class="empty"><div class="empty-ic">🔍</div><p>${t('업체가 없습니다','No results')}</p></div>`;
+  const prem=list.filter(b=>b.tier==='premium');
+  const std=list.filter(b=>b.tier==='standard');
+  const free=list.filter(b=>b.tier==='free');
   let h='';
   if(prem.length){
     h+=`<div class="tier-sec"><div class="tier-hdr prem"><span style="font-size:var(--f-lg)">🥇</span><span class="tier-lbl prem">${t('프리미엄','Premium')}</span><span class="tier-desc">${t('최상위 노출','Top Placement')}</span></div>`;
@@ -480,7 +482,7 @@ ${S.bizs.map(b=>`<div class="biz-row-adm"><span style="flex-shrink:0">${ci(b.cat
 function bizFormHTML(prefix, b){
   const v=f=>b?b[f]||'':'';
   const cats=S.cats.map(c=>`<option value="${c.id}"${b&&b.cat===c.id?' selected':''}>${c.ic} ${t(c.ko,c.en)}</option>`).join('');
-  const areas=S.areas.filter(a=>a.id!=='all').map(a=>`<option value="${a.id}"${b&&b.area===a.id?' selected':''}>${t(a.ko,a.en)}</option>`).join('');
+  const areas=(S.areas||AREAS).filter(a=>a.id!=='all').map(a=>`<option value="${a.id}"${b&&b.area===a.id?' selected':''}>${t(a.ko,a.en)}</option>`).join('');
   const tiers=['premium','standard','free'].map(tr=>`<option value="${tr}"${b&&b.tier===tr?' selected':''}>${{premium:'🥇 '+t('프리미엄','Premium'),standard:'⭐ '+t('스탠다드','Standard'),free:'📋 '+t('무료','Free')}[tr]}</option>`).join('');
   const subs=(SUBCATS[b?.cat||'restaurant']||[]).map(s=>`<option value="${s}"${b&&b.subcat===s?' selected':''}>${s}</option>`).join('');
   const curTier=b?b.tier:'free';
@@ -601,7 +603,7 @@ function saveEditNotice(id){
 
 // ── 지역 관리 ──
 function renderAdminArea(){
-  const userAreas=S.areas.filter(a=>a.id!=='all');
+  const userAreas=(S.areas||AREAS).filter(a=>a.id!=='all');
   return`<div class="card-box"><h3>➕ ${t('새 지역 추가','Add Area')}</h3>
 <div class="frow">
   <div class="fg"><label class="fl">${t('지역명 (한국어)','Korean')}</label><input class="fi" id="ar_ko" placeholder="예: 수빅"></div>
@@ -755,8 +757,8 @@ function onQL(v){
   S.q=v;
   const el=document.getElementById('list-results');
   if(!el)return;
-  const subs=SUBCATS[S.cat];
-  el.innerHTML=(subs&&subs.length?`<div class="sub-bar"><button class="s-btn${!S.subcat?' on':''}" onclick="setSub(null)">${t('전체','All')}</button>${subs.map(s=>`<button class="s-btn${S.subcat===s?' on':''}" onclick="setSub('${s}')">${s}</button>`).join('')}</div>`:'')+renderTiered(getFiltered());
+  const subs=S.cat?(SUBCATS[S.cat]||[]):[];
+  el.innerHTML=(subs.length?`<div class="sub-bar"><button class="s-btn${!S.subcat?' on':''}" onclick="setSub(null)">${t('전체','All')}</button>${subs.map(s=>`<button class="s-btn${S.subcat===s?' on':''}" onclick="setSub('${s}')">${s}</button>`).join('')}</div>`:'')+renderTiered(getFiltered());
 }
 function secretTap(){_tapCount++;clearTimeout(_tapTimer);if(_tapCount>=5){_tapCount=0;S.screen='admin';render();return;}_tapTimer=setTimeout(()=>_tapCount=0,3000);}
 function render(){const fn={home:renderHome,list:renderList,detail:renderDetail,admin:renderAdmin,notice:renderNotice,inquiry:renderInquiry};document.getElementById('app').innerHTML=(fn[S.screen]||renderHome)();document.getElementById('app').scrollTop=0;}
@@ -764,7 +766,22 @@ function render(){const fn={home:renderHome,list:renderList,detail:renderDetail,
 // ══ STORAGE ═══════════════════════════════════════════════════
 async function saveData(){try{await window.storage.set('kjigi_v1',JSON.stringify({bizs:S.bizs,cats:S.cats,areas:S.areas,notices:S.notices,inquiries:S.inquiries,adminPw:S.adminPw}));}catch(e){}}
 async function loadAll(){
-  try{const r=await window.storage.get('kjigi_v1');if(r?.value){const d=JSON.parse(r.value);if(d.bizs?.length)S.bizs=d.bizs;if(d.cats?.length)S.cats=d.cats;if(d.areas?.length)S.areas=d.areas;if(d.notices?.length)S.notices=d.notices;if(d.inquiries)S.inquiries=d.inquiries;if(d.adminPw)S.adminPw=d.adminPw;}}catch(e){}
+  try{
+    const r=await window.storage.get('kjigi_v1');
+    if(r?.value){
+      const d=JSON.parse(r.value);
+      if(d.bizs?.length)S.bizs=d.bizs;
+      if(d.cats?.length)S.cats=d.cats;
+      if(d.areas?.length)S.areas=d.areas;
+      else S.areas=[...DEFAULT_AREAS]; // 이전 저장 데이터에 areas 없으면 기본값
+      if(d.notices?.length)S.notices=d.notices;
+      if(d.inquiries)S.inquiries=d.inquiries;
+      if(d.adminPw)S.adminPw=d.adminPw;
+    }
+  }catch(e){
+    // 에러시 기본값 유지
+    S.areas=[...DEFAULT_AREAS];
+  }
   checkTierExpiry();
   render();
 }
