@@ -235,6 +235,7 @@ const ALL_EMOJIS=Object.values(EMOJI_CATS).flat();
 const SUBCATS={restaurant:['한식','중식','일식','치킨/피자','분식','양식','술집/포차'],massage:['타이마사지','스웨디시','발마사지','한방마사지','아로마'],cafe:['카페','베이커리','디저트/기타'],beauty:['헤어','네일','피부관리'],medical:['내과/외과','치과','피부과'],shopping:['의류/패션','화장품','생활용품'],hotel:['호텔','게스트하우스/펜션']};
 const DEFAULT_CATS=[{id:'restaurant',ic:'🍽️',ko:'레스토랑',en:'Restaurant'},{id:'massage',ic:'💆',ko:'마사지/스파',en:'Massage/Spa'},{id:'hotel',ic:'🏨',ko:'호텔/숙박',en:'Hotel'},{id:'mart',ic:'🛒',ko:'마트/슈퍼',en:'Mart'},{id:'exchange',ic:'💱',ko:'환전',en:'Exchange'},{id:'karaoke',ic:'🎤',ko:'노래방',en:'Karaoke'},{id:'beauty',ic:'💇',ko:'미용/네일',en:'Beauty'},{id:'medical',ic:'🏥',ko:'의료',en:'Medical'},{id:'travel',ic:'✈️',ko:'여행사',en:'Travel'},{id:'realestate',ic:'🏠',ko:'부동산',en:'Real Estate'},{id:'auto',ic:'🚗',ko:'자동차',en:'Auto'},{id:'legal',ic:'⚖️',ko:'법률/회계',en:'Legal'},{id:'shopping',ic:'🛍️',ko:'쇼핑',en:'Shopping'},{id:'education',ic:'📚',ko:'교육',en:'Education'},{id:'cafe',ic:'☕',ko:'카페/베이커리',en:'Cafe'},{id:'etc',ic:'📌',ko:'기타',en:'Others'}];
 const AREAS=[{id:'all',ko:'전체',en:'All'},{id:'clark',ko:'클락',en:'Clark'},{id:'angeles',ko:'앙헬레스',en:'Angeles'},{id:'mabalacat',ko:'마발라캣',en:'Mabalacat'}];
+const an_area=id=>{const a=S?.areas?.find(x=>x.id===id)||AREAS.find(x=>x.id===id);return a?t(a.ko,a.en):id;};
 const GR=['linear-gradient(135deg,#1e3a8a,#2563eb)','linear-gradient(135deg,#7c3aed,#a855f7)','linear-gradient(135deg,#065f46,#059669)','linear-gradient(135deg,#9a3412,#ea580c)','linear-gradient(135deg,#1e293b,#334155)','linear-gradient(135deg,#0c4a6e,#0284c7)'];
 const DEFAULT_NOTICES=[
   {id:1,pinned:true,titleKo:'🎉 K지기 베타 오픈 안내',titleEn:'🎉 K지기 Beta Launch',bodyKo:'클락/앙헬레스 한인 업소 종합 가이드 K지기가 베타 서비스를 시작했습니다!\n\n현재 무료로 업체 등록을 받고 있으니 많은 참여 부탁드립니다.\n\n📌 무료 등록 기간: 2025년 하반기까지',bodyEn:'K지기, your trusted Korean business guide for Clark/Angeles, has launched beta!',date:'2025-03-01'},
@@ -306,7 +307,7 @@ const S={lang:'ko',screen:'home',area:'all',cat:null,subcat:null,q:'',bizs:[...S
 const t=(ko,en)=>S.lang==='ko'?ko:en;
 const catOf=id=>S.cats.find(c=>c.id===id)||{ic:'📌',ko:'기타',en:'Others'};
 const ci=id=>catOf(id).ic; const cn=id=>t(catOf(id).ko,catOf(id).en);
-const an=id=>{const a=AREAS.find(x=>x.id===id);return a?t(a.ko,a.en):id;};
+const an=id=>{const a=S.areas.find(x=>x.id===id);return a?t(a.ko,a.en):id;};
 const nm=b=>b.nKo;
 const fmtDate=d=>{try{return new Date(d).toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});}catch{return d;}};
 const today=()=>new Date().toISOString().slice(0,10);
@@ -398,7 +399,7 @@ function renderList(){
 <div class="l-bar"><input id="ls" type="search" placeholder="${t('검색...','Search...')}" value="${S.q}"
   oninput="onQL(this.value)"
   autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
-<div class="area-bar">${AREAS.map(a=>`<button class="a-btn${S.area===a.id?' on':''}" onclick="setArea2('${a.id}')">${t(a.ko,a.en)}</button>`).join('')}</div>
+<div class="area-bar">${S.areas.map(a=>`<button class="a-btn${S.area===a.id?' on':''}" onclick="setArea2('${a.id}')">${t(a.ko,a.en)}</button>`).join('')}</div>
 <div id="list-results">
 ${subs&&subs.length?`<div class="sub-bar"><button class="s-btn${!S.subcat?' on':''}" onclick="setSub(null)">${t('전체','All')}</button>${subs.map(s=>`<button class="s-btn${S.subcat===s?' on':''}" onclick="setSub('${s}')">${s}</button>`).join('')}</div>`:''}
 ${renderTiered(list)}
@@ -465,8 +466,8 @@ function renderAdmin(){
   if(!S.admin)return`<div class="hdr"><button class="hdr-back" onclick="goHome()">←</button><span class="hdr-title">🔒 ${t('관리자','Admin')}</span></div>
 <div class="lock-wrap"><div style="font-size:60px;margin-bottom:14px">🔐</div><h2 style="font-size:var(--f-lg);font-weight:700;margin-bottom:8px">${t('관리자 로그인','Admin Login')}</h2><p style="color:var(--t2);margin-bottom:22px">${t('비밀번호를 입력하세요','Enter password')}</p><input id="pw" class="pw-in" type="password" placeholder="••••••" onkeydown="if(event.key==='Enter')chkPw()"><button class="btn" onclick="chkPw()">${t('로그인','Login')}</button></div>`;
   return`<div class="hdr"><button class="hdr-back" onclick="goHome()">←</button><span class="hdr-title">⚙️ ${t('관리자 패널','Admin Panel')}</span><button class="lang-btn" onclick="toggleLang()">${S.lang==='ko'?'EN':'한'}</button></div>
-<div class="adm-tabs"><button class="adm-tab ${S.adminTab==='biz'?'on':''}" onclick="setAdminTab('biz')">🏪 ${t('업체','Biz')}</button><button class="adm-tab ${S.adminTab==='notice'?'on':''}" onclick="setAdminTab('notice')">📢 ${t('공지','Notice')}</button><button class="adm-tab ${S.adminTab==='inq'?'on':''}" onclick="setAdminTab('inq')">💬 ${t('문의','Inq')}${S.inquiries.filter(i=>!i.reply).length?` <span style="background:#ef4444;color:#fff;border-radius:8px;padding:1px 5px;font-size:9px">${S.inquiries.filter(i=>!i.reply).length}</span>`:''}</button><button class="adm-tab ${S.adminTab==='cat'?'on':''}" onclick="setAdminTab('cat')">📂 ${t('카테고리','Cat')}</button><button class="adm-tab ${S.adminTab==='pw'?'on':''}" onclick="setAdminTab('pw')">🔑 PW</button></div>
-<div class="adm-body">${{biz:renderAdminBiz,notice:renderAdminNotice,inq:renderAdminInq,cat:renderAdminCat,pw:renderAdminPw}[S.adminTab]?.()}</div>`;
+<div class="adm-tabs"><button class="adm-tab ${S.adminTab==='biz'?'on':''}" onclick="setAdminTab('biz')">🏪 ${t('업체','Biz')}</button><button class="adm-tab ${S.adminTab==='notice'?'on':''}" onclick="setAdminTab('notice')">📢 ${t('공지','Notice')}</button><button class="adm-tab ${S.adminTab==='inq'?'on':''}" onclick="setAdminTab('inq')">💬 ${t('문의','Inq')}${S.inquiries.filter(i=>!i.reply).length?` <span style="background:#ef4444;color:#fff;border-radius:8px;padding:1px 5px;font-size:9px">${S.inquiries.filter(i=>!i.reply).length}</span>`:''}</button><button class="adm-tab ${S.adminTab==='area'?'on':''}" onclick="setAdminTab('area')">📍 ${t('지역','Area')}</button><button class="adm-tab ${S.adminTab==='cat'?'on':''}" onclick="setAdminTab('cat')">📂 ${t('카테고리','Cat')}</button><button class="adm-tab ${S.adminTab==='pw'?'on':''}" onclick="setAdminTab('pw')">🔑 PW</button></div>
+<div class="adm-body">${{biz:renderAdminBiz,notice:renderAdminNotice,inq:renderAdminInq,area:renderAdminArea,cat:renderAdminCat,pw:renderAdminPw}[S.adminTab]?.()}</div>`;
 }
 
 function renderAdminBiz(){
@@ -479,7 +480,7 @@ ${S.bizs.map(b=>`<div class="biz-row-adm"><span style="flex-shrink:0">${ci(b.cat
 function bizFormHTML(prefix, b){
   const v=f=>b?b[f]||'':'';
   const cats=S.cats.map(c=>`<option value="${c.id}"${b&&b.cat===c.id?' selected':''}>${c.ic} ${t(c.ko,c.en)}</option>`).join('');
-  const areas=AREAS.filter(a=>a.id!=='all').map(a=>`<option value="${a.id}"${b&&b.area===a.id?' selected':''}>${t(a.ko,a.en)}</option>`).join('');
+  const areas=S.areas.filter(a=>a.id!=='all').map(a=>`<option value="${a.id}"${b&&b.area===a.id?' selected':''}>${t(a.ko,a.en)}</option>`).join('');
   const tiers=['premium','standard','free'].map(tr=>`<option value="${tr}"${b&&b.tier===tr?' selected':''}>${{premium:'🥇 '+t('프리미엄','Premium'),standard:'⭐ '+t('스탠다드','Standard'),free:'📋 '+t('무료','Free')}[tr]}</option>`).join('');
   const subs=(SUBCATS[b?.cat||'restaurant']||[]).map(s=>`<option value="${s}"${b&&b.subcat===s?' selected':''}>${s}</option>`).join('');
   const curTier=b?b.tier:'free';
@@ -565,7 +566,93 @@ function renderAdminNotice(){
 <div class="fg" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="n_pin" style="width:16px;height:16px"><label for="n_pin" style="font-size:var(--f-sm);cursor:pointer">📌 ${t('중요 공지 (상단 고정)','Pin as important')}</label></div>
 <button class="btn" onclick="submitNotice()">${t('공지 등록','Post')}</button></div>
 <div class="card-box"><h3>${t('공지 목록','Notices')} (${S.notices.length})</h3>
-${S.notices.map(n=>`<div style="display:flex;align-items:center;gap:8px;padding:10px;background:var(--bg);border-radius:8px;margin-bottom:6px">${n.pinned?'📌':'📄'}<span style="flex:1;font-size:var(--f-sm);font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.titleKo}</span><span style="font-size:var(--f-xs);color:var(--t2);flex-shrink:0">${n.date}</span><button class="ab del" onclick="deleteNotice(${n.id})">${t('삭제','Del')}</button></div>`).join('')}</div>`;
+${S.notices.map(n=>`<div style="display:flex;align-items:center;gap:8px;padding:10px;background:var(--bg);border-radius:8px;margin-bottom:6px">
+  ${n.pinned?'📌':'📄'}
+  <span style="flex:1;font-size:var(--f-sm);font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.titleKo}</span>
+  <span style="font-size:var(--f-xs);color:var(--t2);flex-shrink:0">${n.date}</span>
+  <button class="ab edit" onclick="openEditNotice(${n.id})">✏️</button>
+  <button class="ab del" onclick="deleteNotice(${n.id})">${t('삭제','Del')}</button>
+</div>`).join('')}</div>`;
+}
+
+function openEditNotice(id){
+  const n=S.notices.find(x=>x.id===id);if(!n)return;
+  document.getElementById('modal-root').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal">
+<h3>✏️ ${t('공지 수정','Edit Notice')}</h3>
+<div class="fg"><label class="fl">${t('제목 (한국어)','Title (KO)')}</label><input class="fi" id="en_tko" value="${n.titleKo}"></div>
+<div class="fg"><label class="fl">${t('제목 (영어)','Title (EN)')}</label><input class="fi" id="en_ten" value="${n.titleEn}"></div>
+<div class="fg"><label class="fl">${t('내용 (한국어)','Body (KO)')}</label><textarea class="fi" id="en_bko" rows="6">${n.bodyKo}</textarea></div>
+<div class="fg"><label class="fl">${t('내용 (영어)','Body (EN)')}</label><textarea class="fi" id="en_ben" rows="3">${n.bodyEn}</textarea></div>
+<div class="fg" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="en_pin" ${n.pinned?'checked':''} style="width:16px;height:16px"><label for="en_pin" style="font-size:var(--f-sm);cursor:pointer">📌 ${t('중요 공지','Pin')}</label></div>
+<div class="modal-btns"><button class="btn sec" onclick="closeModal()">${t('취소','Cancel')}</button><button class="btn" onclick="saveEditNotice(${id})">${t('저장','Save')}</button></div>
+</div></div>`;
+}
+function saveEditNotice(id){
+  const idx=S.notices.findIndex(x=>x.id===id);if(idx<0)return;
+  S.notices[idx]={...S.notices[idx],
+    titleKo:document.getElementById('en_tko')?.value?.trim()||S.notices[idx].titleKo,
+    titleEn:document.getElementById('en_ten')?.value?.trim()||S.notices[idx].titleEn,
+    bodyKo:document.getElementById('en_bko')?.value?.trim()||S.notices[idx].bodyKo,
+    bodyEn:document.getElementById('en_ben')?.value?.trim()||S.notices[idx].bodyEn,
+    pinned:document.getElementById('en_pin')?.checked||false
+  };
+  saveData();closeModal();render();toast(t('✅ 공지 수정됨','✅ Updated'));
+}
+
+// ── 지역 관리 ──
+function renderAdminArea(){
+  const userAreas=S.areas.filter(a=>a.id!=='all');
+  return`<div class="card-box"><h3>➕ ${t('새 지역 추가','Add Area')}</h3>
+<div class="frow">
+  <div class="fg"><label class="fl">${t('지역명 (한국어)','Korean')}</label><input class="fi" id="ar_ko" placeholder="예: 수빅"></div>
+  <div class="fg"><label class="fl">${t('지역명 (영어)','English')}</label><input class="fi" id="ar_en" placeholder="e.g. Subic"></div>
+</div>
+<button class="btn" onclick="submitArea()">${t('지역 추가','Add')}</button></div>
+<div class="card-box"><h3>${t('지역 목록','Area List')} (${userAreas.length})</h3>
+<p style="font-size:var(--f-xs);color:var(--t2);margin-bottom:10px">💡 ${t('"전체" 탭은 항상 고정이에요.','"전체(All)" tab is always fixed.')}</p>
+${userAreas.map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:10px;background:var(--bg);border-radius:8px;margin-bottom:6px">
+  <span style="font-size:16px">📍</span>
+  <span style="flex:1;font-weight:700;font-size:var(--f-sm)">${a.ko}</span>
+  <span style="color:var(--t2);font-size:var(--f-xs)">${a.en}</span>
+  <button class="ab edit" onclick="openEditArea('${a.id}')">✏️</button>
+  <button class="ab del" onclick="deleteArea('${a.id}')">${t('삭제','Del')}</button>
+</div>`).join('')}
+</div>`;
+}
+
+function submitArea(){
+  const ko=document.getElementById('ar_ko')?.value?.trim();
+  const en=document.getElementById('ar_en')?.value?.trim();
+  if(!ko||!en){toast(t('이름을 입력하세요','Enter name'));return;}
+  const id='area_'+Date.now();
+  S.areas.push({id,ko,en});
+  saveData();render();toast(t('✅ 지역 추가됨','✅ Added'));
+}
+function deleteArea(id){
+  const cnt=S.bizs.filter(b=>b.area===id).length;
+  if(!confirm(cnt>0?t(`이 지역에 업체 ${cnt}개 있어요. 삭제할까요?`,`${cnt} businesses in this area. Delete?`):t('삭제할까요?','Delete?')))return;
+  S.areas=S.areas.filter(a=>a.id!==id);
+  if(S.area===id)S.area='all';
+  saveData();render();toast(t('삭제됨','Deleted'));
+}
+function openEditArea(id){
+  const a=S.areas.find(x=>x.id===id);if(!a)return;
+  document.getElementById('modal-root').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal">
+<h3>✏️ ${t('지역 수정','Edit Area')}</h3>
+<div class="frow">
+  <div class="fg"><label class="fl">${t('한국어','Korean')}</label><input class="fi" id="ea_ko" value="${a.ko}"></div>
+  <div class="fg"><label class="fl">${t('영어','English')}</label><input class="fi" id="ea_en" value="${a.en}"></div>
+</div>
+<div class="modal-btns"><button class="btn sec" onclick="closeModal()">${t('취소','Cancel')}</button><button class="btn" onclick="saveEditArea('${id}')">${t('저장','Save')}</button></div>
+</div></div>`;
+}
+function saveEditArea(id){
+  const ko=document.getElementById('ea_ko')?.value?.trim();
+  const en=document.getElementById('ea_en')?.value?.trim();
+  if(!ko||!en){toast(t('이름을 입력하세요','Enter name'));return;}
+  const idx=S.areas.findIndex(a=>a.id===id);
+  if(idx>-1)S.areas[idx]={...S.areas[idx],ko,en};
+  saveData();closeModal();render();toast(t('✅ 수정됨','✅ Updated'));
 }
 function submitNotice(){const tko=document.getElementById('n_tko')?.value?.trim(),bko=document.getElementById('n_bko')?.value?.trim();if(!tko||!bko){toast(t('제목과 내용을 입력하세요','Enter title and body'));return;}S.notices.push({id:Date.now(),pinned:document.getElementById('n_pin')?.checked||false,titleKo:tko,titleEn:document.getElementById('n_ten')?.value?.trim()||tko,bodyKo:bko,bodyEn:document.getElementById('n_ben')?.value?.trim()||bko,date:today()});saveData();render();toast(t('✅ 공지 등록됨','✅ Posted'));}
 function deleteNotice(id){if(!confirm(t('삭제?','Delete?')))return;S.notices=S.notices.filter(n=>n.id!==id);saveData();render();}
@@ -675,9 +762,9 @@ function secretTap(){_tapCount++;clearTimeout(_tapTimer);if(_tapCount>=5){_tapCo
 function render(){const fn={home:renderHome,list:renderList,detail:renderDetail,admin:renderAdmin,notice:renderNotice,inquiry:renderInquiry};document.getElementById('app').innerHTML=(fn[S.screen]||renderHome)();document.getElementById('app').scrollTop=0;}
 
 // ══ STORAGE ═══════════════════════════════════════════════════
-async function saveData(){try{await window.storage.set('kjigi_v1',JSON.stringify({bizs:S.bizs,cats:S.cats,notices:S.notices,inquiries:S.inquiries,adminPw:S.adminPw}));}catch(e){}}
+async function saveData(){try{await window.storage.set('kjigi_v1',JSON.stringify({bizs:S.bizs,cats:S.cats,areas:S.areas,notices:S.notices,inquiries:S.inquiries,adminPw:S.adminPw}));}catch(e){}}
 async function loadAll(){
-  try{const r=await window.storage.get('kjigi_v1');if(r?.value){const d=JSON.parse(r.value);if(d.bizs?.length)S.bizs=d.bizs;if(d.cats?.length)S.cats=d.cats;if(d.notices?.length)S.notices=d.notices;if(d.inquiries)S.inquiries=d.inquiries;if(d.adminPw)S.adminPw=d.adminPw;}}catch(e){}
+  try{const r=await window.storage.get('kjigi_v1');if(r?.value){const d=JSON.parse(r.value);if(d.bizs?.length)S.bizs=d.bizs;if(d.cats?.length)S.cats=d.cats;if(d.areas?.length)S.areas=d.areas;if(d.notices?.length)S.notices=d.notices;if(d.inquiries)S.inquiries=d.inquiries;if(d.adminPw)S.adminPw=d.adminPw;}}catch(e){}
   checkTierExpiry();
   render();
 }
