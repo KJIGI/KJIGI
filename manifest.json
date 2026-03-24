@@ -1,0 +1,25 @@
+{
+  "name": "K지기 - 클락/앙헬레스 한인 업소 가이드",
+  "short_name": "K지기",
+  "description": "클락/앙헬레스의 든든한 K지기 - 한인 업소 종합 가이드",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#052e16",
+  "theme_color": "#059669",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

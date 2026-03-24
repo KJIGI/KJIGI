@@ -5,10 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
 <title>K지기 - 클락/앙헬레스 한인 업소 가이드</title>
 <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="theme-color" content="#059669">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="K지기">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
-  --p:#2563eb;--pd:#1d4ed8;--bg:#f1f5f9;--card:#fff;--tx:#0f172a;--t2:#64748b;--bd:#e2e8f0;--r:12px;--sh:0 2px 8px rgba(0,0,0,.08);
+  --p:#059669;--pd:#047857;--bg:#f0fdf4;--card:#fff;--tx:#0f172a;--t2:#64748b;--bd:#d1fae5;--r:12px;--sh:0 2px 8px rgba(0,0,0,.08);
   --f-xs:clamp(11px,2.8vw,13px);--f-sm:clamp(13px,3.2vw,15px);--f-md:clamp(14px,3.6vw,17px);--f-lg:clamp(17px,4.2vw,22px);--f-xl:clamp(20px,5vw,28px);
 }
 html,body{height:100%;overflow:hidden}
@@ -18,11 +24,11 @@ body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);co
 #app{flex:1;overflow-y:auto;overscroll-behavior:contain}
 #app::-webkit-scrollbar{width:3px}
 #app::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
-.hdr{background:var(--p);color:#fff;padding:clamp(10px,2.5vw,16px) clamp(12px,3vw,20px);display:flex;align-items:center;gap:clamp(8px,2vw,14px);position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(37,99,235,.35)}
+.hdr{background:linear-gradient(135deg,#064e3b,#059669);color:#fff;padding:clamp(10px,2.5vw,16px) clamp(12px,3vw,20px);display:flex;align-items:center;gap:clamp(8px,2vw,14px);position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(37,99,235,.35)}
 .hdr-back{background:none;border:none;color:#fff;font-size:var(--f-lg);cursor:pointer;padding:2px 8px 2px 0;line-height:1}
 .hdr-title{flex:1;font-size:var(--f-md);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Jua','Noto Sans KR',sans-serif}
 .lang-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:20px;padding:clamp(4px,1vw,7px) clamp(10px,2.5vw,16px);font-size:var(--f-xs);font-weight:700;cursor:pointer;flex-shrink:0}
-.hero{background:linear-gradient(145deg,#1e3a8a,#2563eb);color:#fff;padding:clamp(18px,4vw,30px) clamp(14px,3.5vw,24px) clamp(22px,5vw,34px)}
+.hero{background:linear-gradient(145deg,#052e16,#064e3b,#059669);color:#fff;padding:clamp(18px,4vw,30px) clamp(14px,3.5vw,24px) clamp(22px,5vw,34px)}
 .hero-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
 .hero h1{font-size:var(--f-xl);font-weight:900;letter-spacing:-0.5px;font-family:'Jua','Noto Sans KR',sans-serif}
 .hero-sub{font-size:var(--f-xs);opacity:.7;font-weight:600;letter-spacing:1px;margin-top:2px;font-family:'Noto Sans KR',sans-serif}
