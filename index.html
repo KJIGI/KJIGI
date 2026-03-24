@@ -567,8 +567,10 @@ function updateSubcatSel(prefix,catId,cur){
 function submitBiz(){
   const g=id=>document.getElementById(id)?.value?.trim()||'';
   const nKo=g('f_nKo');if(!nKo){toast(t('업체명을 입력하세요','Enter name'));return;}
-  S.bizs.push({id:Date.now(),cat:g('f_cat')||'etc',subcat:g('f_subcat')||'',tier:g('f_tier')||'free',nKo,area:g('f_area')||'clark',phone:g('f_ph'),kakao:g('f_kk'),aKo:g('f_aKo'),dKo:g('f_dKo'),hrs:g('f_hrs')||'09:00-22:00',promo:g('f_promo'),adminMemo:g('f_memo'),tierExpiry:g('f_expiry'),photo:'',menuPhotos:[],grad:GR[Math.floor(Math.random()*GR.length)],lat:15.17+Math.random()*.02,lng:120.53+Math.random()*.03,open:document.getElementById('f_open')?.checked??true});
-  saveData();render();toast(t('✅ 등록 완료!','✅ Added!'));
+  const b={id:Date.now(),cat:g('f_cat')||'etc',subcat:g('f_subcat')||'',tier:g('f_tier')||'free',nKo,area:g('f_area')||'clark',phone:g('f_ph'),kakao:g('f_kk'),aKo:g('f_aKo'),dKo:g('f_dKo'),hrs:g('f_hrs')||'09:00-22:00',promo:g('f_promo'),adminMemo:g('f_memo'),tierExpiry:g('f_expiry'),photo:'',menuPhotos:[],grad:GR[Math.floor(Math.random()*GR.length)],lat:15.17+Math.random()*.02,lng:120.53+Math.random()*.03,open:document.getElementById('f_open')?.checked??true};
+  S.bizs.push(b);
+  saveBiz(b).then(()=>{render();toast(t('✅ 등록 완료!','✅ Added!'));});
+  render();
 }
 function openEditBiz(id){
   const b=S.bizs.find(x=>x.id===id);if(!b)return;
@@ -579,9 +581,10 @@ function saveEditBiz(id){
   const nKo=g('e_nKo');if(!nKo){toast(t('업체명을 입력하세요','Enter name'));return;}
   const idx=S.bizs.findIndex(b=>b.id===id);if(idx<0)return;
   S.bizs[idx]={...S.bizs[idx],nKo,cat:g('e_cat'),subcat:g('e_subcat'),tier:g('e_tier'),area:g('e_area'),phone:g('e_ph'),kakao:g('e_kk'),aKo:g('e_aKo'),dKo:g('e_dKo'),hrs:g('e_hrs'),promo:g('e_promo'),adminMemo:g('e_memo'),tierExpiry:g('e_expiry'),open:document.getElementById('e_open')?.checked??true};
-  saveData();closeModal();render();toast(t('✅ 수정됐습니다','✅ Saved'));
+  supa.update('businesses',id,bizToRow(S.bizs[idx]));
+  closeModal();render();toast(t('✅ 수정됐습니다','✅ Saved'));
 }
-function delBiz(id){confirmModal(t('이 업체를 삭제할까요?','Delete this business?'),function(){S.bizs=S.bizs.filter(b=>b.id!==id);saveData();render();});}
+function delBiz(id){confirmModal(t('이 업체를 삭제할까요?','Delete this business?'),function(){S.bizs=S.bizs.filter(b=>b.id!==id);supa.delete('businesses',id);render();});}
 
 // ── 사진 관리 ──
 let _tmpMenuPhotos=[];
@@ -603,7 +606,13 @@ function previewMainUrl(url){const box=document.getElementById('mainPhotoBox');i
 async function onMenuPhotoFile(input,id){const files=Array.from(input.files);for(const f of files){const src=await fileToBase64(f);_tmpMenuPhotos.push(src);}refreshMenuGrid(id);}
 function removeMenuPhoto(i,id){_tmpMenuPhotos.splice(i,1);refreshMenuGrid(id);}
 function refreshMenuGrid(id){const grid=document.getElementById('menuImgGrid');if(!grid)return;grid.innerHTML=_tmpMenuPhotos.map((src,i)=>`<div class="img-prev-item"><img src="${src}"><button class="rm-btn" onclick="removeMenuPhoto(${i},${id})">✕</button></div>`).join('')+`<label class="add-img-btn"><span>➕</span><span>${t('추가','Add')}</span><input type="file" accept="image/*" multiple style="display:none" onchange="onMenuPhotoFile(this,${id})"></label>`;}
-function savePhotos(id){const mainUrl=document.getElementById('mainPhotoUrl')?.value?.trim()||'';const idx=S.bizs.findIndex(b=>b.id===id);if(idx<0)return;S.bizs[idx].photo=mainUrl;S.bizs[idx].menuPhotos=[..._tmpMenuPhotos];saveData();closeModal();render();toast(t('✅ 사진 저장됨','✅ Saved'));}
+function savePhotos(id){
+  const mainUrl=document.getElementById('mainPhotoUrl')?.value?.trim()||'';
+  const idx=S.bizs.findIndex(b=>b.id===id);if(idx<0)return;
+  S.bizs[idx].photo=mainUrl;S.bizs[idx].menuPhotos=[..._tmpMenuPhotos];
+  supa.update('businesses',id,{photo:mainUrl,menu_photos:_tmpMenuPhotos});
+  closeModal();render();toast(t('✅ 사진 저장됨','✅ Saved'));
+}
 
 // ── 공지 관리 ──
 function renderAdminNotice(){
@@ -661,7 +670,14 @@ function openReplyModal(id){
   const inq=S.inquiries.find(x=>x.id===id);if(!inq)return;
   document.getElementById('modal-root').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal"><h3>💬 ${t('문의 답변','Reply')}</h3><div style="background:var(--bg);border-radius:9px;padding:12px;font-size:var(--f-sm);margin-bottom:14px;line-height:1.6"><strong>${inq.name}</strong>: ${inq.msg}</div><div class="fg"><label class="fl">${t('답변 내용','Reply')}</label><textarea class="fi" id="reply_body" rows="5">${inq.reply||''}</textarea></div><div class="modal-btns"><button class="btn sec" onclick="closeModal()">${t('취소','Cancel')}</button><button class="btn" onclick="saveReply(${id})">${t('답변 저장','Save')}</button></div></div></div>`;
 }
-function saveReply(id){const reply=document.getElementById('reply_body')?.value?.trim();if(!reply){toast(t('답변을 입력하세요','Enter reply'));return;}const idx=S.inquiries.findIndex(x=>x.id===id);if(idx>-1)S.inquiries[idx].reply=reply;saveData();closeModal();render();toast(t('✅ 답변 저장됨','✅ Saved'));}
+function saveReply(id){
+  const reply=document.getElementById('reply_body')?.value?.trim();
+  if(!reply){toast(t('답변을 입력하세요','Enter reply'));return;}
+  const idx=S.inquiries.findIndex(x=>x.id===id);
+  if(idx>-1)S.inquiries[idx].reply=reply;
+  supa.update('inquiries',id,{reply,is_new:false});
+  closeModal();render();toast(t('✅ 답변 저장됨','✅ Saved'));
+}
 
 // ── 지역 관리 ──
 function renderAdminArea(){
@@ -769,7 +785,74 @@ let _tapCount=0,_tapTimer=null;
 function secretTap(){_tapCount++;clearTimeout(_tapTimer);if(_tapCount>=5){_tapCount=0;S.screen='admin';render();return;}_tapTimer=setTimeout(()=>_tapCount=0,3000);}
 function render(){const fn={home:renderHome,list:renderList,detail:renderDetail,admin:renderAdmin,notice:renderNotice,inquiry:renderInquiry};document.getElementById('app').innerHTML=(fn[S.screen]||renderHome)();document.getElementById('app').scrollTop=0;}
 
-// ══ 저장/불러오기 ═════════════════════════════════════════════
+// ══ SUPABASE 연결 ═════════════════════════════════════════════
+const SUPA_URL = 'https://aeklwexspqbgaedicyba.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFla2x3ZXhzcHFiZ2FlZGljeWJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNzQxNzgsImV4cCI6MjA4OTk1MDE3OH0.9LOh2rUIegdCDERaSQkh7htklbYbfAi_smmnwZMiC90';
+
+const supa = {
+  async get(table) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?select=*&order=id`, {
+      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
+    });
+    return r.ok ? r.json() : [];
+  },
+  async insert(table, data) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation'},
+      body: JSON.stringify(data)
+    });
+    return r.ok ? r.json() : null;
+  },
+  async update(table, id, data) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    return r.ok;
+  },
+  async upsert(table, data, onConflict='id') {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?on_conflict=${onConflict}`, {
+      method: 'POST',
+      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'},
+      body: JSON.stringify(data)
+    });
+    return r.ok;
+  },
+  async delete(table, id) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
+    });
+    return r.ok;
+  },
+  async deleteWhere(table, col, val) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${col}=eq.${val}`, {
+      method: 'DELETE',
+      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
+    });
+    return r.ok;
+  },
+  async getSetting(key) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/settings?key=eq.${key}&select=value`, {
+      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
+    });
+    const d = r.ok ? await r.json() : [];
+    return d[0]?.value || null;
+  },
+  async setSetting(key, value) {
+    await fetch(`${SUPA_URL}/rest/v1/settings?key=eq.${key}`, {
+      method: 'DELETE',
+      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
+    });
+    await fetch(`${SUPA_URL}/rest/v1/settings`, {
+      method: 'POST',
+      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json'},
+      body: JSON.stringify({key, value})
+    });
+  }
+};
 async function saveData(){
   try{await window.storage.set('kjigi_v2',JSON.stringify({bizs:S.bizs,cats:S.cats,areas:S.areas,notices:S.notices,inquiries:S.inquiries,adminPw:S.adminPw}));}catch(e){}
 }
