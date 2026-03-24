@@ -564,13 +564,98 @@ function updateSubcatSel(prefix,catId,cur){
   sel.innerHTML=`<option value="">${t('선택 안함','None')}</option>`+subs.map(s=>`<option value="${s}"${s===cur?' selected':''}>${s}</option>`).join('');
 }
 
+// ── Supabase 데이터 변환 함수 ──
+function bizToRow(b){
+  return {
+    id: b.id,
+    cat: b.cat || 'etc',
+    subcat: b.subcat || '',
+    tier: b.tier || 'free',
+    n_ko: b.nKo || '',
+    area: b.area || 'clark',
+    phone: b.phone || '',
+    kakao: b.kakao || '',
+    a_ko: b.aKo || '',
+    d_ko: b.dKo || '',
+    hrs: b.hrs || '',
+    promo: b.promo || '',
+    admin_memo: b.adminMemo || '',
+    tier_expiry: b.tierExpiry || null,
+    photo: b.photo || '',
+    menu_photos: b.menuPhotos || [],
+    grad: b.grad || '',
+    lat: b.lat || 15.18,
+    lng: b.lng || 120.54,
+    open: b.open !== false
+  };
+}
+
+function rowToBiz(r){
+  return {
+    id: r.id,
+    cat: r.cat || 'etc',
+    subcat: r.subcat || '',
+    tier: r.tier || 'free',
+    nKo: r.n_ko || '',
+    area: r.area || 'clark',
+    phone: r.phone || '',
+    kakao: r.kakao || '',
+    aKo: r.a_ko || '',
+    dKo: r.d_ko || '',
+    hrs: r.hrs || '',
+    promo: r.promo || '',
+    adminMemo: r.admin_memo || '',
+    tierExpiry: r.tier_expiry || '',
+    photo: r.photo || '',
+    menuPhotos: r.menu_photos || [],
+    grad: r.grad || GR[Math.floor(Math.random()*GR.length)],
+    lat: r.lat || 15.18,
+    lng: r.lng || 120.54,
+    open: r.open !== false
+  };
+}
+
+async function saveBiz(b){
+  try {
+    const row = bizToRow(b);
+    const result = await supa.insert('businesses', row);
+    if(result) console.log('✅ Supabase 저장 성공:', result);
+    else console.warn('⚠️ Supabase 저장 실패');
+    return result;
+  } catch(e) {
+    console.error('❌ Supabase 에러:', e);
+    return null;
+  }
+}
+
+// ── 업체 등록 (확인창 + 중복클릭 방지) ──
+let _submitting = false;
 function submitBiz(){
+  if(_submitting) return; // 중복 클릭 방지
+  
   const g=id=>document.getElementById(id)?.value?.trim()||'';
-  const nKo=g('f_nKo');if(!nKo){toast(t('업체명을 입력하세요','Enter name'));return;}
+  const nKo=g('f_nKo');
+  if(!nKo){toast(t('업체명을 입력하세요','Enter name'));return;}
+  
+  // 확인창 표시
+  if(!confirm(t('업체를 등록하시겠습니까?\n\n업체명: ','Register this business?\n\nName: ') + nKo)) return;
+  
+  _submitting = true;
+  const btn = document.querySelector('.card-box .btn');
+  if(btn) { btn.disabled = true; btn.textContent = t('등록 중...','Saving...'); }
+  
   const b={id:Date.now(),cat:g('f_cat')||'etc',subcat:g('f_subcat')||'',tier:g('f_tier')||'free',nKo,area:g('f_area')||'clark',phone:g('f_ph'),kakao:g('f_kk'),aKo:g('f_aKo'),dKo:g('f_dKo'),hrs:g('f_hrs')||'09:00-22:00',promo:g('f_promo'),adminMemo:g('f_memo'),tierExpiry:g('f_expiry'),photo:'',menuPhotos:[],grad:GR[Math.floor(Math.random()*GR.length)],lat:15.17+Math.random()*.02,lng:120.53+Math.random()*.03,open:document.getElementById('f_open')?.checked??true};
+  
   S.bizs.push(b);
-  saveBiz(b).then(()=>{render();toast(t('✅ 등록 완료!','✅ Added!'));});
-  render();
+  saveBiz(b).then(()=>{
+    _submitting = false;
+    toast(t('✅ 등록 완료!','✅ Added!'));
+    render();
+  }).catch(()=>{
+    _submitting = false;
+    toast(t('❌ 등록 실패','❌ Failed'));
+    render();
+  });
 }
 function openEditBiz(id){
   const b=S.bizs.find(x=>x.id===id);if(!b)return;
@@ -857,11 +942,24 @@ async function saveData(){
   try{await window.storage.set('kjigi_v2',JSON.stringify({bizs:S.bizs,cats:S.cats,areas:S.areas,notices:S.notices,inquiries:S.inquiries,adminPw:S.adminPw}));}catch(e){}
 }
 async function loadAll(){
+  // 1. Supabase에서 업체 데이터 불러오기
+  try {
+    const rows = await supa.get('businesses');
+    if(rows && rows.length > 0) {
+      S.bizs = rows.map(rowToBiz);
+      console.log('✅ Supabase에서 ' + rows.length + '개 업체 로드됨');
+    }
+  } catch(e) {
+    console.warn('⚠️ Supabase 로드 실패, 로컬 데이터 사용:', e);
+  }
+  
+  // 2. 로컬 스토리지에서 기타 설정 불러오기 (공지, 문의 등)
   try{
     const r=await window.storage.get('kjigi_v2');
     if(r?.value){
       const d=JSON.parse(r.value);
-      if(d.bizs?.length)S.bizs=d.bizs;
+      // bizs는 Supabase 우선, 없으면 로컬 사용
+      if(!S.bizs.length && d.bizs?.length) S.bizs=d.bizs;
       if(d.cats?.length)S.cats=d.cats;
       if(d.areas?.length)S.areas=d.areas;else S.areas=[...DEFAULT_AREAS];
       if(d.notices?.length)S.notices=d.notices;
@@ -869,6 +967,7 @@ async function loadAll(){
       if(d.adminPw)S.adminPw=d.adminPw;
     }
   }catch(e){S.areas=[...DEFAULT_AREAS];}
+  
   checkTierExpiry();
   render();
 }
