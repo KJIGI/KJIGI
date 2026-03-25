@@ -412,7 +412,8 @@ function renderTiered(list){
 // ══ 화면들 ════════════════════════════════════════════════════
 function renderHome(){
   const areas=S.areas||DEFAULT_AREAS;
-  const cats=S.cats||DEFAULT_CATS;
+  // 카테고리를 sortOrder로 항상 정렬
+  const cats=(S.cats||DEFAULT_CATS).slice().sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));
   const byArea=b=>S.area==='all'||b.area===S.area;
   return`<div class="hdr"><span class="hdr-title" onclick="secretTap()" style="cursor:default">🇰🇷 K지기</span><button class="lang-btn" onclick="toggleLang()">${S.lang==='ko'?'EN':'한'}</button></div>
 <div class="hero"><div><h1><span style="color:#fbbf24">K</span>지기</h1><div class="hero-sub">클락 · 앙헬레스 · 한인 업소 종합 가이드</div></div>
@@ -989,15 +990,9 @@ async function addSubcat(catId){
   
   S.cats[idx].subcats.push(name);
   
-  // Supabase 업데이트
-  await supa.upsert('categories', {
-    id: catId,
-    ic: S.cats[idx].ic,
-    ko: S.cats[idx].ko,
-    en: S.cats[idx].en,
-    sort_order: S.cats[idx].sortOrder || 99,
-    subcats: S.cats[idx].subcats
-  }, 'id');
+  // Supabase 업데이트 (update 사용)
+  console.log('📌 세부분류 추가:', catId, S.cats[idx].subcats);
+  await supa.update('categories', catId, {subcats: S.cats[idx].subcats});
   
   // SUBCATS 객체 업데이트
   SUBCATS[catId] = S.cats[idx].subcats;
@@ -1012,15 +1007,9 @@ async function removeSubcat(catId, index){
   
   const removed = S.cats[idx].subcats.splice(index, 1);
   
-  // Supabase 업데이트
-  await supa.upsert('categories', {
-    id: catId,
-    ic: S.cats[idx].ic,
-    ko: S.cats[idx].ko,
-    en: S.cats[idx].en,
-    sort_order: S.cats[idx].sortOrder || 99,
-    subcats: S.cats[idx].subcats
-  }, 'id');
+  // Supabase 업데이트 (update 사용)
+  console.log('📌 세부분류 삭제:', catId, S.cats[idx].subcats);
+  await supa.update('categories', catId, {subcats: S.cats[idx].subcats});
   
   // SUBCATS 객체 업데이트
   if(S.cats[idx].subcats.length > 0) {
@@ -1047,15 +1036,16 @@ async function submitCat(){
   const newCat = {id:'cat_'+Date.now(),ic,ko,en,sortOrder:S.cats.length+1,subcats:[]};
   S.cats.push(newCat);
   
-  // Supabase 저장
-  await supa.upsert('categories', {
+  // Supabase 저장 (insert 사용)
+  console.log('📂 새 카테고리 추가:', newCat);
+  await supa.insert('categories', {
     id: newCat.id,
     ic: newCat.ic,
     ko: newCat.ko,
     en: newCat.en,
     sort_order: newCat.sortOrder,
     subcats: []
-  }, 'id');
+  });
   
   render();
   toast(t('✅ 추가됨','✅ Added'));
@@ -1082,15 +1072,11 @@ async function saveEditCat(id){
   if(idx>-1){
     S.cats[idx]={...S.cats[idx],ic,ko,en};
     
-    // Supabase 업데이트
-    await supa.upsert('categories', {
-      id: id,
-      ic: ic,
-      ko: ko,
-      en: en,
-      sort_order: S.cats[idx].sortOrder || 99,
-      subcats: S.cats[idx].subcats || []
-    }, 'id');
+    // Supabase 업데이트 (update 사용)
+    const updateData = {ic, ko, en};
+    console.log('📝 카테고리 수정:', id, updateData);
+    const result = await supa.update('categories', id, updateData);
+    console.log('📝 수정 결과:', result);
   }
   closeModal();render();toast(t('✅ 수정됨','✅ Updated'));
 }
@@ -1125,9 +1111,9 @@ function goCat(id){S.cat=id;S.subcat=null;S.q='';S.screen='list';render();}
 function goDetail(id){S.prevScreen=S.screen;S.sel=S.bizs.find(b=>b.id===id);S.screen='detail';render();}
 function goBack(){S.screen=S.prevScreen||'home';render();}
 function setSub(s){S.subcat=s;render();}
-function setArea(id){S.area=id;const rr=document.getElementById('srch-results');if(!rr){render();return;}const areas=S.areas||DEFAULT_AREAS;document.querySelectorAll('.area-bar .a-btn').forEach(btn=>{const txt=t(areas.find(a=>a.id===id)?.ko||'',areas.find(a=>a.id===id)?.en||'');btn.classList.toggle('on',btn.textContent===txt||btn.getAttribute('onclick')===`setArea('${id}')`)});const byArea=b=>S.area==='all'||b.area===S.area;if(S.q){rr.innerHTML=`<div class="sec-ttl">${t('검색 결과','Results')} (${getFiltered().length})</div>${renderTiered(getFiltered())}`;}else{const cats=S.cats||DEFAULT_CATS;rr.innerHTML=`<div class="sec-ttl">${t('카테고리별 보기','Browse by Category')}</div><div class="cat-grid">${cats.map(c=>{const n=S.bizs.filter(bb=>bb.cat===c.id&&byArea(bb)).length;return`<div class="cat-item" onclick="goCat('${c.id}')"><span class="cat-icon">${c.ic}</span><span class="cat-name">${t(c.ko,c.en)}</span><span class="cat-cnt">${n}${t('개','')}</span></div>`;}).join('')}</div>`;}render();}
+function setArea(id){S.area=id;const rr=document.getElementById('srch-results');if(!rr){render();return;}const areas=S.areas||DEFAULT_AREAS;document.querySelectorAll('.area-bar .a-btn').forEach(btn=>{const txt=t(areas.find(a=>a.id===id)?.ko||'',areas.find(a=>a.id===id)?.en||'');btn.classList.toggle('on',btn.textContent===txt||btn.getAttribute('onclick')===`setArea('${id}')`)});const byArea=b=>S.area==='all'||b.area===S.area;if(S.q){rr.innerHTML=`<div class="sec-ttl">${t('검색 결과','Results')} (${getFiltered().length})</div>${renderTiered(getFiltered())}`;}else{const cats=(S.cats||DEFAULT_CATS).slice().sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));rr.innerHTML=`<div class="sec-ttl">${t('카테고리별 보기','Browse by Category')}</div><div class="cat-grid">${cats.map(c=>{const n=S.bizs.filter(bb=>bb.cat===c.id&&byArea(bb)).length;return`<div class="cat-item" onclick="goCat('${c.id}')"><span class="cat-icon">${c.ic}</span><span class="cat-name">${t(c.ko,c.en)}</span><span class="cat-cnt">${n}${t('개','')}</span></div>`;}).join('')}</div>`;}render();}
 function setArea2(id){S.area=id;render();}
-function onQ(v){S.q=v;const el=document.getElementById('srch-results');if(!el)return;const byArea=b=>S.area==='all'||b.area===S.area;if(v){el.innerHTML=`<div class="sec-ttl">${t('검색 결과','Results')} (${getFiltered().length})</div>${renderTiered(getFiltered())}`;}else{const cats=S.cats||DEFAULT_CATS;el.innerHTML=`<div class="sec-ttl">${t('카테고리별 보기','Browse by Category')}</div><div class="cat-grid">${cats.map(c=>{const n=S.bizs.filter(bb=>bb.cat===c.id&&byArea(bb)).length;return`<div class="cat-item" onclick="goCat('${c.id}')"><span class="cat-icon">${c.ic}</span><span class="cat-name">${t(c.ko,c.en)}</span><span class="cat-cnt">${n}${t('개','')}</span></div>`;}).join('')}</div>`;}}
+function onQ(v){S.q=v;const el=document.getElementById('srch-results');if(!el)return;const byArea=b=>S.area==='all'||b.area===S.area;if(v){el.innerHTML=`<div class="sec-ttl">${t('검색 결과','Results')} (${getFiltered().length})</div>${renderTiered(getFiltered())}`;}else{const cats=(S.cats||DEFAULT_CATS).slice().sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));el.innerHTML=`<div class="sec-ttl">${t('카테고리별 보기','Browse by Category')}</div><div class="cat-grid">${cats.map(c=>{const n=S.bizs.filter(bb=>bb.cat===c.id&&byArea(bb)).length;return`<div class="cat-item" onclick="goCat('${c.id}')"><span class="cat-icon">${c.ic}</span><span class="cat-name">${t(c.ko,c.en)}</span><span class="cat-cnt">${n}${t('개','')}</span></div>`;}).join('')}</div>`;}}
 function onQL(v){S.q=v;const el=document.getElementById('list-results');if(!el)return;const subs=S.cat?(SUBCATS[S.cat]||[]):[];el.innerHTML=(subs.length?`<div class="sub-bar"><button class="s-btn${!S.subcat?' on':''}" onclick="setSub(null)">${t('전체','All')}</button>${subs.map(s=>`<button class="s-btn${S.subcat===s?' on':''}" onclick="setSub('${s}')">${s}</button>`).join('')}</div>`:'')+renderTiered(getFiltered());}
 function chkPw(){const v=document.getElementById('pw')?.value;if(v===S.adminPw){S.admin=true;render();}else toast(t('비밀번호 오류 ❌','Wrong password ❌'));}
 let _tapCount=0,_tapTimer=null;
