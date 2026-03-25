@@ -250,7 +250,8 @@ const EMOJI_CATS={
   '📌 기타':['📌','📍','🗺️','🌟','🎁','🎉','🎊','✨','💫','🔥','❤️','💙','💚','💛','🧡','💜','🖤','💝','🎀','🔔','📣','📢','💡','🔍','🔐','📦'],
 };
 const ALL_EMOJIS=Object.values(EMOJI_CATS).flat();
-const SUBCATS={restaurant:['한식','중식','일식','치킨/피자','분식','양식','술집/포차'],massage:['타이마사지','스웨디시','발마사지','한방마사지','아로마'],cafe:['카페','베이커리','디저트/기타'],beauty:['헤어','네일','피부관리'],medical:['내과/외과','치과','피부과'],shopping:['의류/패션','화장품','생활용품'],hotel:['호텔','게스트하우스/펜션']};
+// SUBCATS는 이제 Supabase categories 테이블의 subcats 컬럼에서 동적으로 로드
+let SUBCATS={};
 const DEFAULT_CATS=[{id:'restaurant',ic:'🍽️',ko:'레스토랑',en:'Restaurant'},{id:'massage',ic:'💆',ko:'마사지/스파',en:'Massage/Spa'},{id:'hotel',ic:'🏨',ko:'호텔/숙박',en:'Hotel'},{id:'mart',ic:'🛒',ko:'마트/슈퍼',en:'Mart'},{id:'exchange',ic:'💱',ko:'환전',en:'Exchange'},{id:'karaoke',ic:'🎤',ko:'노래방',en:'Karaoke'},{id:'beauty',ic:'💇',ko:'미용/네일',en:'Beauty'},{id:'medical',ic:'🏥',ko:'의료',en:'Medical'},{id:'travel',ic:'✈️',ko:'여행사',en:'Travel'},{id:'realestate',ic:'🏠',ko:'부동산',en:'Real Estate'},{id:'auto',ic:'🚗',ko:'자동차',en:'Auto'},{id:'legal',ic:'⚖️',ko:'법률/회계',en:'Legal'},{id:'shopping',ic:'🛍️',ko:'쇼핑',en:'Shopping'},{id:'education',ic:'📚',ko:'교육',en:'Education'},{id:'cafe',ic:'☕',ko:'카페/베이커리',en:'Cafe'},{id:'etc',ic:'📌',ko:'기타',en:'Others'}];
 const DEFAULT_AREAS=[{id:'all',ko:'전체',en:'All'},{id:'clark',ko:'클락',en:'Clark'},{id:'angeles',ko:'앙헬레스',en:'Angeles'},{id:'mabalacat',ko:'마발라캣',en:'Mabalacat'}];
 const GR=['linear-gradient(135deg,#052e16,#059669)','linear-gradient(135deg,#7c3aed,#a855f7)','linear-gradient(135deg,#065f46,#059669)','linear-gradient(135deg,#9a3412,#ea580c)','linear-gradient(135deg,#1e293b,#334155)','linear-gradient(135deg,#0c4a6e,#0284c7)'];
@@ -920,7 +921,27 @@ function saveEditArea(id){
 
 // ── 카테고리 관리 ──
 function renderAdminCat(){
-  return`<div class="card-box"><h3>➕ ${t('새 카테고리','Add Category')}</h3>
+  return`<div class="card-box"><h3>📂 ${t('카테고리 목록','Categories')} (${S.cats.length})</h3>
+<p style="font-size:var(--f-xs);color:var(--t2);margin-bottom:12px">💡 ${t('각 카테고리의 세부분류를 관리할 수 있습니다.','Manage subcategories for each category.')}</p>
+${S.cats.map(c=>{
+  const subcats = c.subcats || [];
+  return`<div class="cat-row-adm" style="flex-direction:column;align-items:stretch;gap:8px;padding:12px">
+<div style="display:flex;align-items:center;gap:8px">
+<span style="font-size:24px;flex-shrink:0;width:30px;text-align:center">${c.ic}</span>
+<div style="flex:1;min-width:0"><div class="cat-nm-ko">${c.ko}</div><div class="cat-nm-en">${c.en}</div></div>
+<span class="cat-cnt-sm">${S.bizs.filter(b=>b.cat===c.id).length}${t('개','')}</span>
+<button class="ic-btn ed" onclick="openEditCat('${c.id}')">✏️</button>
+</div>
+<div style="padding-left:38px">
+<div style="font-size:var(--f-xs);color:var(--t2);margin-bottom:6px">📌 ${t('세부분류','Subcats')}: ${subcats.length>0?subcats.join(', '):t('없음','None')}</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn sm" style="font-size:11px;padding:4px 8px" onclick="openSubcatModal('${c.id}')">➕ ${t('세부분류 관리','Manage')}</button>
+</div>
+</div>
+</div>`;
+}).join('')}
+</div>
+<div class="card-box"><h3>➕ ${t('새 카테고리','Add Category')}</h3>
 <div class="fg"><label class="fl">${t('아이콘 선택','Choose Icon')}</label>
 <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div id="selEmojiPreview" style="width:48px;height:48px;background:var(--bg);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;border:2px solid var(--p)">${S.newCatEmoji}</div><input class="fi" id="f_emoji" value="${S.newCatEmoji}" oninput="updateEmojiPreview(this.value)" style="font-size:22px;text-align:center;width:70px"></div>
 <input class="emoji-search" placeholder="🔍 ${t('아이콘 검색...','Search icon...')}" oninput="filterEmoji(this.value)">
@@ -928,15 +949,118 @@ function renderAdminCat(){
 <div class="emoji-grid" id="emojiGrid">${ALL_EMOJIS.map(e=>`<button class="eg-btn${e===S.newCatEmoji?' sel':''}" onclick="pickEmoji('${e}')">${e}</button>`).join('')}</div></div>
 <div class="frow"><div class="fg"><label class="fl">${t('한국어','Korean')}</label><input class="fi" id="f_cko" placeholder="예: 골프장"></div>
 <div class="fg"><label class="fl">${t('영어','English')}</label><input class="fi" id="f_cen" placeholder="e.g. Golf"></div></div>
-<button class="btn" onclick="submitCat()">${t('카테고리 추가','Add')}</button></div>
-<div class="card-box"><h3>${t('카테고리 목록','Categories')} (${S.cats.length})</h3>
-${S.cats.map(c=>`<div class="cat-row-adm"><span style="font-size:24px;flex-shrink:0;width:30px;text-align:center">${c.ic}</span><div style="flex:1;min-width:0"><div class="cat-nm-ko">${c.ko}</div><div class="cat-nm-en">${c.en}</div></div><span class="cat-cnt-sm">${S.bizs.filter(b=>b.cat===c.id).length}${t('개','')}</span><div style="display:flex;gap:5px"><button class="ic-btn ed" onclick="openEditCat('${c.id}')">✏️</button><button class="ic-btn dl" onclick="deleteCat('${c.id}')">${t('삭제','Del')}</button></div></div>`).join('')}</div>`;
+<button class="btn" onclick="submitCat()">${t('카테고리 추가','Add')}</button></div>`;
 }
+
+// 세부분류 관리 모달
+function openSubcatModal(catId){
+  const c = S.cats.find(x=>x.id===catId);
+  if(!c) return;
+  const subcats = c.subcats || [];
+  document.getElementById('modal-root').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal">
+<h3>📌 ${c.ic} ${c.ko} - ${t('세부분류 관리','Manage Subcats')}</h3>
+<div style="margin-bottom:12px">
+<div style="display:flex;gap:6px;margin-bottom:8px">
+<input class="fi" id="new_subcat" placeholder="${t('새 세부분류 이름','New subcat name')}" style="flex:1">
+<button class="btn sm" onclick="addSubcat('${catId}')">${t('추가','Add')}</button>
+</div>
+</div>
+<div id="subcat-list" style="max-height:300px;overflow-y:auto">
+${subcats.length===0?`<p style="color:var(--t2);font-size:var(--f-sm)">${t('세부분류가 없습니다','No subcats yet')}</p>`:
+subcats.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg);border-radius:8px;margin-bottom:4px">
+<span style="flex:1;font-size:var(--f-sm)">${s}</span>
+<button class="ab del" onclick="removeSubcat('${catId}',${i})">${t('삭제','Del')}</button>
+</div>`).join('')}
+</div>
+<div class="modal-btns"><button class="btn" onclick="closeModal()">${t('완료','Done')}</button></div>
+</div></div>`;
+}
+
+async function addSubcat(catId){
+  const input = document.getElementById('new_subcat');
+  const name = input?.value?.trim();
+  if(!name){toast(t('이름을 입력하세요','Enter name'));return;}
+  
+  const idx = S.cats.findIndex(c=>c.id===catId);
+  if(idx<0) return;
+  
+  if(!S.cats[idx].subcats) S.cats[idx].subcats = [];
+  if(S.cats[idx].subcats.includes(name)){toast(t('이미 있습니다','Already exists'));return;}
+  
+  S.cats[idx].subcats.push(name);
+  
+  // Supabase 업데이트
+  await supa.upsert('categories', {
+    id: catId,
+    ic: S.cats[idx].ic,
+    ko: S.cats[idx].ko,
+    en: S.cats[idx].en,
+    sort_order: S.cats[idx].sortOrder || 99,
+    subcats: S.cats[idx].subcats
+  }, 'id');
+  
+  // SUBCATS 객체 업데이트
+  SUBCATS[catId] = S.cats[idx].subcats;
+  
+  toast(t('✅ 추가됨','✅ Added'));
+  openSubcatModal(catId); // 모달 새로고침
+}
+
+async function removeSubcat(catId, index){
+  const idx = S.cats.findIndex(c=>c.id===catId);
+  if(idx<0) return;
+  
+  const removed = S.cats[idx].subcats.splice(index, 1);
+  
+  // Supabase 업데이트
+  await supa.upsert('categories', {
+    id: catId,
+    ic: S.cats[idx].ic,
+    ko: S.cats[idx].ko,
+    en: S.cats[idx].en,
+    sort_order: S.cats[idx].sortOrder || 99,
+    subcats: S.cats[idx].subcats
+  }, 'id');
+  
+  // SUBCATS 객체 업데이트
+  if(S.cats[idx].subcats.length > 0) {
+    SUBCATS[catId] = S.cats[idx].subcats;
+  } else {
+    delete SUBCATS[catId];
+  }
+  
+  toast(t('삭제됨','Deleted'));
+  openSubcatModal(catId); // 모달 새로고침
+}
+
 function filterEmoji(q){const grid=document.getElementById('emojiGrid');if(!grid)return;const list=q?ALL_EMOJIS.filter(e=>e.includes(q)):ALL_EMOJIS;grid.innerHTML=list.map(e=>`<button class="eg-btn${e===S.newCatEmoji?' sel':''}" onclick="pickEmoji('${e}')">${e}</button>`).join('');}
 function filterEmojiCat(cat){document.querySelectorAll('.emoji-cat-btn').forEach(btn=>btn.classList.toggle('on',btn.textContent===cat));const grid=document.getElementById('emojiGrid');if(!grid)return;const list=cat==='전체'?ALL_EMOJIS:(EMOJI_CATS[cat]||ALL_EMOJIS);grid.innerHTML=list.map(e=>`<button class="eg-btn${e===S.newCatEmoji?' sel':''}" onclick="pickEmoji('${e}')">${e}</button>`).join('');const inp=document.getElementById('.emoji-search');if(inp)inp.value='';}
 function updateEmojiPreview(v){S.newCatEmoji=v||'📌';const p=document.getElementById('selEmojiPreview');if(p)p.textContent=S.newCatEmoji;document.querySelectorAll('#emojiGrid .eg-btn').forEach(btn=>btn.classList.toggle('sel',btn.textContent===v));}
 function pickEmoji(e){S.newCatEmoji=e;const i=document.getElementById('f_emoji');if(i)i.value=e;updateEmojiPreview(e);}
-function submitCat(){const ic=document.getElementById('f_emoji')?.value?.trim()||'📌',ko=document.getElementById('f_cko')?.value?.trim(),en=document.getElementById('f_cen')?.value?.trim();if(!ko||!en){toast(t('이름을 모두 입력하세요','Enter both names'));return;}S.cats.push({id:'cat_'+Date.now(),ic,ko,en});saveData();render();toast(t('✅ 추가됨','✅ Added'));}
+
+async function submitCat(){
+  const ic=document.getElementById('f_emoji')?.value?.trim()||'📌';
+  const ko=document.getElementById('f_cko')?.value?.trim();
+  const en=document.getElementById('f_cen')?.value?.trim();
+  if(!ko||!en){toast(t('이름을 모두 입력하세요','Enter both names'));return;}
+  
+  const newCat = {id:'cat_'+Date.now(),ic,ko,en,sortOrder:S.cats.length+1,subcats:[]};
+  S.cats.push(newCat);
+  
+  // Supabase 저장
+  await supa.upsert('categories', {
+    id: newCat.id,
+    ic: newCat.ic,
+    ko: newCat.ko,
+    en: newCat.en,
+    sort_order: newCat.sortOrder,
+    subcats: []
+  }, 'id');
+  
+  render();
+  toast(t('✅ 추가됨','✅ Added'));
+}
+
 function openEditCat(id){
   const c=S.cats.find(x=>x.id===id);if(!c)return;
   document.getElementById('modal-root').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal"><h3>✏️ ${t('카테고리 수정','Edit Category')}</h3>
@@ -947,8 +1071,39 @@ function openEditCat(id){
 }
 function updateEditEmojiPreview(v){const p=document.getElementById('editEmojiPreview');if(p)p.textContent=v||'📌';document.querySelectorAll('#editEmojiGrid .eg-btn').forEach(btn=>btn.classList.toggle('sel',btn.textContent===v));}
 function pickEditEmoji(e){const i=document.getElementById('e_emoji');if(i)i.value=e;updateEditEmojiPreview(e);}
-function saveEditCat(id){const ic=document.getElementById('e_emoji')?.value?.trim()||'📌',ko=document.getElementById('e_ko')?.value?.trim(),en=document.getElementById('e_en')?.value?.trim();if(!ko||!en){toast(t('이름을 입력하세요','Enter name'));return;}const idx=S.cats.findIndex(c=>c.id===id);if(idx>-1)S.cats[idx]={...S.cats[idx],ic,ko,en};saveData();closeModal();render();toast(t('✅ 수정됨','✅ Updated'));}
-function deleteCat(id){const cnt=S.bizs.filter(b=>b.cat===id).length;confirmModal(cnt>0?t('업체 '+cnt+'개 포함. 삭제할까요?',cnt+' businesses. Delete?'):t('삭제할까요?','Delete?'),function(){S.cats=S.cats.filter(c=>c.id!==id);saveData();render();toast(t('삭제됨','Deleted'));});}
+
+async function saveEditCat(id){
+  const ic=document.getElementById('e_emoji')?.value?.trim()||'📌';
+  const ko=document.getElementById('e_ko')?.value?.trim();
+  const en=document.getElementById('e_en')?.value?.trim();
+  if(!ko||!en){toast(t('이름을 입력하세요','Enter name'));return;}
+  
+  const idx=S.cats.findIndex(c=>c.id===id);
+  if(idx>-1){
+    S.cats[idx]={...S.cats[idx],ic,ko,en};
+    
+    // Supabase 업데이트
+    await supa.upsert('categories', {
+      id: id,
+      ic: ic,
+      ko: ko,
+      en: en,
+      sort_order: S.cats[idx].sortOrder || 99,
+      subcats: S.cats[idx].subcats || []
+    }, 'id');
+  }
+  closeModal();render();toast(t('✅ 수정됨','✅ Updated'));
+}
+
+async function deleteCat(id){
+  const cnt=S.bizs.filter(b=>b.cat===id).length;
+  confirmModal(cnt>0?t('업체 '+cnt+'개 포함. 삭제할까요?',cnt+' businesses. Delete?'):t('삭제할까요?','Delete?'),async function(){
+    S.cats=S.cats.filter(c=>c.id!==id);
+    delete SUBCATS[id];
+    await supa.deleteWhere('categories','id',id);
+    render();toast(t('삭제됨','Deleted'));
+  });
+}
 
 // ── 비밀번호 ──
 function renderAdminPw(){
@@ -1058,6 +1213,29 @@ async function saveData(){
 // 모든 데이터 Supabase에서 불러오기
 async function loadAll(){
   console.log('🔄 데이터 로딩 시작...');
+  
+  // 0. 카테고리 (세부분류 포함)
+  try {
+    const catRows = await supa.get('categories');
+    if(catRows?.length) {
+      S.cats = catRows.map(r => ({
+        id: r.id,
+        ic: r.ic || '📌',
+        ko: r.ko || '',
+        en: r.en || '',
+        sortOrder: r.sort_order || 99,
+        subcats: r.subcats || []
+      })).sort((a,b) => (a.sortOrder||99) - (b.sortOrder||99));
+      // SUBCATS 객체 업데이트
+      SUBCATS = {};
+      S.cats.forEach(c => {
+        if(c.subcats && c.subcats.length > 0) {
+          SUBCATS[c.id] = c.subcats;
+        }
+      });
+      console.log('✅ 카테고리:', catRows.length + '개');
+    }
+  } catch(e) { console.warn('⚠️ 카테고리 로드 실패:', e); }
   
   // 1. 업체 데이터
   try {
