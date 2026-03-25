@@ -564,10 +564,9 @@ function updateSubcatSel(prefix,catId,cur){
   sel.innerHTML=`<option value="">${t('선택 안함','None')}</option>`+subs.map(s=>`<option value="${s}"${s===cur?' selected':''}>${s}</option>`).join('');
 }
 
-// ── Supabase 데이터 변환 함수 ──
-function bizToRow(b){
-  return {
-    id: b.id,
+// ══ Supabase 데이터 변환 ═════════════════════════════════════
+function bizToRow(b, includeId=false){
+  const row = {
     cat: b.cat || 'etc',
     subcat: b.subcat || '',
     tier: b.tier || 'free',
@@ -588,6 +587,8 @@ function bizToRow(b){
     lng: b.lng || 120.54,
     open: b.open !== false
   };
+  if(includeId && b.id) row.id = b.id;
+  return row;
 }
 
 function rowToBiz(r){
@@ -617,39 +618,50 @@ function rowToBiz(r){
 
 async function saveBiz(b){
   try {
-    const row = bizToRow(b);
+    const row = bizToRow(b, false); // id 제외!
     const result = await supa.insert('businesses', row);
-    if(result) console.log('✅ Supabase 저장 성공:', result);
-    else console.warn('⚠️ Supabase 저장 실패');
-    return result;
+    if(result && result[0]) {
+      // Supabase가 생성한 id를 로컬 객체에 반영
+      const idx = S.bizs.findIndex(x => x.nKo === b.nKo && !x.id);
+      if(idx >= 0) S.bizs[idx].id = result[0].id;
+      else b.id = result[0].id;
+      console.log('✅ Supabase 저장 성공, ID:', result[0].id);
+      return result[0];
+    }
+    console.warn('⚠️ Supabase 저장 실패');
+    return null;
   } catch(e) {
     console.error('❌ Supabase 에러:', e);
     return null;
   }
 }
 
-// ── 업체 등록 (확인창 + 중복클릭 방지) ──
+// ══ 업체 등록 (확인창 + 중복클릭 방지) ═════════════════════════
 let _submitting = false;
 function submitBiz(){
-  if(_submitting) return; // 중복 클릭 방지
+  if(_submitting) return;
   
   const g=id=>document.getElementById(id)?.value?.trim()||'';
   const nKo=g('f_nKo');
   if(!nKo){toast(t('업체명을 입력하세요','Enter name'));return;}
   
-  // 확인창 표시
+  // 확인창
   if(!confirm(t('업체를 등록하시겠습니까?\n\n업체명: ','Register this business?\n\nName: ') + nKo)) return;
   
   _submitting = true;
   const btn = document.querySelector('.card-box .btn');
   if(btn) { btn.disabled = true; btn.textContent = t('등록 중...','Saving...'); }
   
-  const b={id:Date.now(),cat:g('f_cat')||'etc',subcat:g('f_subcat')||'',tier:g('f_tier')||'free',nKo,area:g('f_area')||'clark',phone:g('f_ph'),kakao:g('f_kk'),aKo:g('f_aKo'),dKo:g('f_dKo'),hrs:g('f_hrs')||'09:00-22:00',promo:g('f_promo'),adminMemo:g('f_memo'),tierExpiry:g('f_expiry'),photo:'',menuPhotos:[],grad:GR[Math.floor(Math.random()*GR.length)],lat:15.17+Math.random()*.02,lng:120.53+Math.random()*.03,open:document.getElementById('f_open')?.checked??true};
+  const b={cat:g('f_cat')||'etc',subcat:g('f_subcat')||'',tier:g('f_tier')||'free',nKo,area:g('f_area')||'clark',phone:g('f_ph'),kakao:g('f_kk'),aKo:g('f_aKo'),dKo:g('f_dKo'),hrs:g('f_hrs')||'09:00-22:00',promo:g('f_promo'),adminMemo:g('f_memo'),tierExpiry:g('f_expiry'),photo:'',menuPhotos:[],grad:GR[Math.floor(Math.random()*GR.length)],lat:15.17+Math.random()*.02,lng:120.53+Math.random()*.03,open:document.getElementById('f_open')?.checked??true};
   
   S.bizs.push(b);
-  saveBiz(b).then(()=>{
+  saveBiz(b).then((result)=>{
     _submitting = false;
-    toast(t('✅ 등록 완료!','✅ Added!'));
+    if(result) {
+      toast(t('✅ 등록 완료!','✅ Added!'));
+    } else {
+      toast(t('⚠️ 저장 실패 (로컬만 저장됨)','⚠️ Save failed (local only)'));
+    }
     render();
   }).catch(()=>{
     _submitting = false;
@@ -666,7 +678,7 @@ function saveEditBiz(id){
   const nKo=g('e_nKo');if(!nKo){toast(t('업체명을 입력하세요','Enter name'));return;}
   const idx=S.bizs.findIndex(b=>b.id===id);if(idx<0)return;
   S.bizs[idx]={...S.bizs[idx],nKo,cat:g('e_cat'),subcat:g('e_subcat'),tier:g('e_tier'),area:g('e_area'),phone:g('e_ph'),kakao:g('e_kk'),aKo:g('e_aKo'),dKo:g('e_dKo'),hrs:g('e_hrs'),promo:g('e_promo'),adminMemo:g('e_memo'),tierExpiry:g('e_expiry'),open:document.getElementById('e_open')?.checked??true};
-  supa.update('businesses',id,bizToRow(S.bizs[idx]));
+  supa.update('businesses',id,bizToRow(S.bizs[idx], false));
   closeModal();render();toast(t('✅ 수정됐습니다','✅ Saved'));
 }
 function delBiz(id){confirmModal(t('이 업체를 삭제할까요?','Delete this business?'),function(){S.bizs=S.bizs.filter(b=>b.id!==id);supa.delete('businesses',id);render();});}
@@ -947,18 +959,17 @@ async function loadAll(){
     const rows = await supa.get('businesses');
     if(rows && rows.length > 0) {
       S.bizs = rows.map(rowToBiz);
-      console.log('✅ Supabase에서 ' + rows.length + '개 업체 로드됨');
+      console.log('✅ Supabase에서 ' + rows.length + '개 업체 로드');
     }
   } catch(e) {
-    console.warn('⚠️ Supabase 로드 실패, 로컬 데이터 사용:', e);
+    console.warn('⚠️ Supabase 로드 실패:', e);
   }
   
-  // 2. 로컬 스토리지에서 기타 설정 불러오기 (공지, 문의 등)
+  // 2. 로컬 스토리지에서 기타 설정 불러오기
   try{
     const r=await window.storage.get('kjigi_v2');
     if(r?.value){
       const d=JSON.parse(r.value);
-      // bizs는 Supabase 우선, 없으면 로컬 사용
       if(!S.bizs.length && d.bizs?.length) S.bizs=d.bizs;
       if(d.cats?.length)S.cats=d.cats;
       if(d.areas?.length)S.areas=d.areas;else S.areas=[...DEFAULT_AREAS];
