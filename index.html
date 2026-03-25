@@ -925,7 +925,10 @@ function renderAdminCat(){
   return`<div class="card-box"><h3>📂 ${t('카테고리 목록','Categories')} (${S.cats.length})</h3>
 <p style="font-size:var(--f-xs);color:var(--t2);margin-bottom:12px">💡 ${t('각 카테고리의 세부분류를 관리할 수 있습니다.','Manage subcategories for each category.')}</p>
 ${S.cats.map(c=>{
-  const subcats = c.subcats || [];
+  // subcats 안전하게 처리 (문자열이면 파싱)
+  let subcats = c.subcats || [];
+  if(typeof subcats === 'string') { try { subcats = JSON.parse(subcats); } catch(e) { subcats = []; } }
+  if(!Array.isArray(subcats)) subcats = [];
   return`<div class="cat-row-adm" style="flex-direction:column;align-items:stretch;gap:8px;padding:12px">
 <div style="display:flex;align-items:center;gap:8px">
 <span style="font-size:24px;flex-shrink:0;width:30px;text-align:center">${c.ic}</span>
@@ -957,7 +960,11 @@ ${S.cats.map(c=>{
 function openSubcatModal(catId){
   const c = S.cats.find(x=>x.id===catId);
   if(!c) return;
-  const subcats = c.subcats || [];
+  // subcats 안전하게 처리
+  let subcats = c.subcats || [];
+  if(typeof subcats === 'string') { try { subcats = JSON.parse(subcats); } catch(e) { subcats = []; } }
+  if(!Array.isArray(subcats)) subcats = [];
+  c.subcats = subcats; // 파싱된 값으로 업데이트
   document.getElementById('modal-root').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal">
 <h3>📌 ${c.ic} ${c.ko} - ${t('세부분류 관리','Manage Subcats')}</h3>
 <div style="margin-bottom:12px">
@@ -1127,7 +1134,11 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 const supa = {
   async get(table) {
     const r = await fetch(`${SUPA_URL}/rest/v1/${table}?select=*&order=id`, {
-      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
+      headers: {
+        'apikey': SUPA_KEY, 
+        'Authorization': 'Bearer ' + SUPA_KEY,
+        'Cache-Control': 'no-cache, no-store, must-revalidate'
+      }
     });
     return r.ok ? r.json() : [];
   },
@@ -1215,7 +1226,8 @@ async function loadAll(){
         ko: r.ko || '',
         en: r.en || '',
         sortOrder: r.sort_order || 99,
-        subcats: r.subcats || []
+        // subcats가 문자열이면 파싱, 배열이면 그대로
+        subcats: typeof r.subcats === 'string' ? JSON.parse(r.subcats) : (r.subcats || [])
       })).sort((a,b) => (a.sortOrder||99) - (b.sortOrder||99));
       // SUBCATS 객체 업데이트
       SUBCATS = {};
@@ -1224,7 +1236,9 @@ async function loadAll(){
           SUBCATS[c.id] = c.subcats;
         }
       });
+      // 디버깅: 로드된 카테고리 확인
       console.log('✅ 카테고리:', catRows.length + '개');
+      S.cats.forEach(c => console.log('  📂', c.id, c.ko, 'subcats:', c.subcats));
     }
   } catch(e) { console.warn('⚠️ 카테고리 로드 실패:', e); }
   
