@@ -1140,11 +1140,16 @@ const supa = {
     return r.ok ? r.json() : null;
   },
   async update(table, id, data) {
-    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${id}`, {
+    console.log('🔧 UPDATE 요청:', table, 'id=' + id, data);
+    const url = `${SUPA_URL}/rest/v1/${table}?id=eq.${id}`;
+    console.log('🔧 URL:', url);
+    const r = await fetch(url, {
       method: 'PATCH',
-      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json'},
+      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation'},
       body: JSON.stringify(data)
     });
+    const body = await r.text();
+    console.log('🔧 UPDATE 응답:', r.status, body);
     return r.ok;
   },
   async upsert(table, data, onConflict='id') {
