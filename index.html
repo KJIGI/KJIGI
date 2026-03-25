@@ -1081,7 +1081,12 @@ async function loadAll(){
   try {
     const areaRows = await supa.get('areas');
     if(areaRows?.length) {
-      S.areas = areaRows.map(rowToArea).sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));
+      // 'all'(전체)이 항상 맨 앞에 오도록 정렬
+      S.areas = areaRows.map(rowToArea).sort((a,b)=>{
+        if(a.id==='all') return -1;
+        if(b.id==='all') return 1;
+        return (a.sortOrder||99)-(b.sortOrder||99);
+      });
       console.log('✅ 지역:', areaRows.length + '개');
     }
   } catch(e) { console.warn('⚠️ 지역 로드 실패:', e); }
