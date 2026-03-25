@@ -14,7 +14,7 @@
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
   --p:#059669;--pd:#047857;--bg:#f0fdf4;--card:#fff;--tx:#0f172a;--t2:#64748b;--bd:#d1fae5;--r:12px;--sh:0 2px 8px rgba(0,0,0,.08);
-  --f-xs:clamp(12px,3.2vw,14px);--f-sm:clamp(14px,3.8vw,17px);--f-md:clamp(16px,4.2vw,19px);--f-lg:clamp(19px,4.8vw,24px);--f-xl:clamp(22px,5.5vw,30px);
+  --f-xs:clamp(11px,2.8vw,13px);--f-sm:clamp(13px,3.2vw,15px);--f-md:clamp(14px,3.6vw,17px);--f-lg:clamp(17px,4.2vw,22px);--f-xl:clamp(20px,5vw,28px);
 }
 html{height:-webkit-fill-available}
 html,body{height:100%;overflow:hidden}
@@ -40,11 +40,11 @@ body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);co
 .srch-box input::placeholder{color:rgba(255,255,255,.65)}
 
 /* QUICK BTNS */
-.quick-row{display:flex;gap:clamp(7px,2vw,12px);padding:clamp(10px,2.5vw,16px) clamp(12px,3vw,18px);background:#fff;border-bottom:1px solid var(--bd)}
-.q-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--bg);border:1.5px solid var(--bd);border-radius:10px;padding:clamp(8px,2vw,12px) 6px;cursor:pointer;font-size:var(--f-sm);font-weight:700;color:var(--t2);font-family:'Noto Sans KR',sans-serif}
+.quick-row{display:flex;gap:clamp(8px,2vw,12px);padding:clamp(8px,2vw,12px) clamp(12px,3vw,18px);background:#fff;border-bottom:1px solid var(--bd)}
+.q-btn{flex:1;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;background:var(--bg);border:1.5px solid var(--bd);border-radius:10px;padding:clamp(10px,2.5vw,14px) 10px;cursor:pointer;font-size:var(--f-sm);font-weight:700;color:var(--t2);font-family:'Noto Sans KR',sans-serif}
 .q-btn.notice{border-color:#fde68a;background:#fffbeb;color:#92400e}
 .q-btn.inquiry{border-color:#a5f3fc;background:#ecfeff;color:#0e7490}
-.q-btn span{font-size:clamp(20px,5vw,26px)}
+.q-btn span{font-size:clamp(18px,4.5vw,22px)}
 
 /* AREA BAR */
 .area-bar{display:flex;gap:clamp(6px,1.5vw,10px);padding:clamp(8px,2vw,12px) clamp(12px,3vw,18px);overflow-x:auto;scrollbar-width:none;background:#fff;border-bottom:1px solid var(--bd)}
@@ -60,12 +60,12 @@ body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);co
 
 /* CAT GRID */
 .sec-ttl{padding:clamp(12px,3vw,18px) clamp(14px,3.5vw,22px) clamp(8px,2vw,12px);font-size:var(--f-md);font-weight:700;font-family:'Jua',sans-serif}
-.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(82px,25vw,120px),1fr));gap:1px;background:var(--bd);margin-bottom:clamp(14px,3.5vw,22px)}
-.cat-item{background:var(--card);padding:clamp(16px,4vw,24px) clamp(8px,2vw,12px);display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1.5vw,10px);cursor:pointer}
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--bd);margin-bottom:clamp(14px,3.5vw,22px)}
+.cat-item{background:var(--card);padding:clamp(10px,2.5vw,14px) clamp(4px,1vw,6px);display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vw,6px);cursor:pointer}
 .cat-item:active{background:#f0fdf4}
-.cat-icon{font-size:clamp(38px,10vw,56px)}
-.cat-name{font-size:clamp(15px,4vw,19px);font-weight:700;text-align:center;line-height:1.3;font-family:'Jua',sans-serif}
-.cat-cnt{font-size:clamp(13px,3.2vw,16px);color:var(--t2)}
+.cat-icon{font-size:clamp(28px,7vw,40px)}
+.cat-name{font-size:clamp(13px,3.2vw,15px);font-weight:700;text-align:center;line-height:1.2;font-family:'Jua',sans-serif}
+.cat-cnt{font-size:clamp(11px,2.8vw,13px);color:var(--t2)}
 
 /* LIST */
 .l-bar{padding:clamp(8px,2vw,12px) clamp(12px,3vw,18px);background:#fff;border-bottom:1px solid var(--bd);display:flex;gap:8px}
@@ -491,8 +491,9 @@ function submitInquiry(){
   const contact=document.getElementById('inq_contact')?.value?.trim()||'';
   const msg=document.getElementById('inq_msg')?.value?.trim();
   if(!msg){toast(t('문의 내용을 입력하세요','Enter your message'));return;}
-  S.inquiries.push({id:Date.now(),name,contact,msg,date:today(),reply:'',isNew:true});
-  saveData();render();
+  const inq={name,contact,msg,date:today(),reply:'',isNew:true};
+  S.inquiries.push(inq);
+  saveInquiry(inq).then(()=>{render();});
   toast(t('✅ 문의가 접수됐습니다! 빠른 시일 내에 답변드릴게요 😊','✅ Inquiry submitted!'));
   if('Notification' in window && Notification.permission==='default'){
     Notification.requestPermission();
@@ -564,9 +565,11 @@ function updateSubcatSel(prefix,catId,cur){
   sel.innerHTML=`<option value="">${t('선택 안함','None')}</option>`+subs.map(s=>`<option value="${s}"${s===cur?' selected':''}>${s}</option>`).join('');
 }
 
-// ══ Supabase 데이터 변환 ═════════════════════════════════════
-function bizToRow(b, includeId=false){
-  const row = {
+// ══ Supabase 데이터 변환 함수들 ═════════════════════════════════════
+
+// 업체 변환
+function bizToRow(b){
+  return {
     cat: b.cat || 'etc',
     subcat: b.subcat || '',
     tier: b.tier || 'free',
@@ -587,10 +590,7 @@ function bizToRow(b, includeId=false){
     lng: b.lng || 120.54,
     open: b.open !== false
   };
-  if(includeId && b.id) row.id = b.id;
-  return row;
 }
-
 function rowToBiz(r){
   return {
     id: r.id,
@@ -616,23 +616,121 @@ function rowToBiz(r){
   };
 }
 
+// 공지사항 변환
+function noticeToRow(n){
+  return {
+    pinned: n.pinned || false,
+    title_ko: n.titleKo || '',
+    title_en: n.titleEn || '',
+    body_ko: n.bodyKo || '',
+    body_en: n.bodyEn || '',
+    notice_date: n.date || today()
+  };
+}
+function rowToNotice(r){
+  return {
+    id: r.id,
+    pinned: r.pinned || false,
+    titleKo: r.title_ko || '',
+    titleEn: r.title_en || '',
+    bodyKo: r.body_ko || '',
+    bodyEn: r.body_en || '',
+    date: r.notice_date || r.created_at?.slice(0,10) || ''
+  };
+}
+
+// 지역 변환
+function areaToRow(a){
+  return {
+    id: a.id,
+    ko: a.ko || '',
+    en: a.en || '',
+    sort_order: a.sortOrder || 99
+  };
+}
+function rowToArea(r){
+  return {
+    id: r.id,
+    ko: r.ko || '',
+    en: r.en || '',
+    sortOrder: r.sort_order || 99
+  };
+}
+
+// 문의 변환
+function inqToRow(i){
+  return {
+    name: i.name || '',
+    contact: i.contact || '',
+    msg: i.msg || '',
+    reply: i.reply || '',
+    is_new: i.isNew !== false,
+    inq_date: i.date || today()
+  };
+}
+function rowToInq(r){
+  return {
+    id: r.id,
+    name: r.name || '',
+    contact: r.contact || '',
+    msg: r.msg || '',
+    reply: r.reply || '',
+    isNew: r.is_new !== false,
+    date: r.inq_date || r.created_at?.slice(0,10) || ''
+  };
+}
+
+// ══ Supabase 저장 함수들 ═════════════════════════════════════
+
 async function saveBiz(b){
   try {
-    const row = bizToRow(b, false);
+    const row = bizToRow(b);
     const result = await supa.insert('businesses', row);
     if(result && result[0]) {
       const idx = S.bizs.findIndex(x => x.nKo === b.nKo && !x.id);
       if(idx >= 0) S.bizs[idx].id = result[0].id;
       else b.id = result[0].id;
-      console.log('✅ Supabase 저장 성공, ID:', result[0].id);
+      console.log('✅ 업체 저장:', result[0].id);
       return result[0];
     }
-    console.warn('⚠️ Supabase 저장 실패');
     return null;
-  } catch(e) {
-    console.error('❌ Supabase 에러:', e);
+  } catch(e) { console.error('❌ 업체 저장 실패:', e); return null; }
+}
+
+async function saveNotice(n){
+  try {
+    const row = noticeToRow(n);
+    const result = await supa.insert('notices', row);
+    if(result && result[0]) {
+      n.id = result[0].id;
+      console.log('✅ 공지 저장:', result[0].id);
+      return result[0];
+    }
     return null;
-  }
+  } catch(e) { console.error('❌ 공지 저장 실패:', e); return null; }
+}
+
+async function saveArea(a){
+  try {
+    const row = areaToRow(a);
+    // areas 테이블은 id가 text 타입이므로 upsert 사용
+    const result = await supa.upsert('areas', row, 'id');
+    console.log('✅ 지역 저장:', a.id);
+    return result;
+  } catch(e) { console.error('❌ 지역 저장 실패:', e); return null; }
+}
+
+async function saveInquiry(i){
+  try {
+    const row = inqToRow(i);
+    const result = await supa.insert('inquiries', row);
+    if(result && result[0]) {
+      i.id = result[0].id;
+      console.log('✅ 문의 저장:', result[0].id);
+      return result[0];
+    }
+    return null;
+  } catch(e) { console.error('❌ 문의 저장 실패:', e); return null; }
 }
 
 // ══ 업체 등록 (확인창 + 중복클릭 방지) ═════════════════════════
@@ -655,15 +753,7 @@ function submitBiz(){
   S.bizs.push(b);
   saveBiz(b).then((result)=>{
     _submitting = false;
-    if(result) {
-      toast(t('✅ 등록 완료!','✅ Added!'));
-    } else {
-      toast(t('⚠️ 저장 실패 (로컬만 저장됨)','⚠️ Save failed (local only)'));
-    }
-    render();
-  }).catch(()=>{
-    _submitting = false;
-    toast(t('❌ 등록 실패','❌ Failed'));
+    toast(result ? t('✅ 등록 완료!','✅ Added!') : t('⚠️ 저장 실패','⚠️ Failed'));
     render();
   });
 }
@@ -676,7 +766,7 @@ function saveEditBiz(id){
   const nKo=g('e_nKo');if(!nKo){toast(t('업체명을 입력하세요','Enter name'));return;}
   const idx=S.bizs.findIndex(b=>b.id===id);if(idx<0)return;
   S.bizs[idx]={...S.bizs[idx],nKo,cat:g('e_cat'),subcat:g('e_subcat'),tier:g('e_tier'),area:g('e_area'),phone:g('e_ph'),kakao:g('e_kk'),aKo:g('e_aKo'),dKo:g('e_dKo'),hrs:g('e_hrs'),promo:g('e_promo'),adminMemo:g('e_memo'),tierExpiry:g('e_expiry'),open:document.getElementById('e_open')?.checked??true};
-  supa.update('businesses',id,bizToRow(S.bizs[idx], false));
+  supa.update('businesses',id,bizToRow(S.bizs[idx]));
   closeModal();render();toast(t('✅ 수정됐습니다','✅ Saved'));
 }
 function delBiz(id){confirmModal(t('이 업체를 삭제할까요?','Delete this business?'),function(){S.bizs=S.bizs.filter(b=>b.id!==id);supa.delete('businesses',id);render();});}
@@ -729,8 +819,9 @@ ${n.pinned?'📌':'📄'}<span style="flex:1;font-size:var(--f-sm);font-weight:6
 function submitNotice(){
   const tko=document.getElementById('n_tko')?.value?.trim(),bko=document.getElementById('n_bko')?.value?.trim();
   if(!tko||!bko){toast(t('제목과 내용을 입력하세요','Enter title and body'));return;}
-  S.notices.push({id:Date.now(),pinned:document.getElementById('n_pin')?.checked||false,titleKo:tko,titleEn:document.getElementById('n_ten')?.value?.trim()||tko,bodyKo:bko,bodyEn:document.getElementById('n_ben')?.value?.trim()||bko,date:today()});
-  saveData();render();toast(t('✅ 공지 등록됨','✅ Posted'));
+  const n={pinned:document.getElementById('n_pin')?.checked||false,titleKo:tko,titleEn:document.getElementById('n_ten')?.value?.trim()||tko,bodyKo:bko,bodyEn:document.getElementById('n_ben')?.value?.trim()||bko,date:today()};
+  S.notices.push(n);
+  saveNotice(n).then(()=>{render();toast(t('✅ 공지 등록됨','✅ Posted'));});
 }
 function openEditNotice(id){
   const n=S.notices.find(x=>x.id===id);if(!n)return;
@@ -749,9 +840,10 @@ function saveEditNotice(id){
   const idx=S.notices.findIndex(x=>x.id===id);if(idx<0)return;
   const newDate = document.getElementById('en_date')?.value || S.notices[idx].date;
   S.notices[idx]={...S.notices[idx],titleKo:document.getElementById('en_tko')?.value?.trim()||S.notices[idx].titleKo,titleEn:document.getElementById('en_ten')?.value?.trim()||S.notices[idx].titleEn,bodyKo:document.getElementById('en_bko')?.value?.trim()||S.notices[idx].bodyKo,bodyEn:document.getElementById('en_ben')?.value?.trim()||S.notices[idx].bodyEn,pinned:document.getElementById('en_pin')?.checked||false,date:newDate};
-  saveData();closeModal();render();toast(t('✅ 수정됨','✅ Updated'));
+  supa.update('notices',id,noticeToRow(S.notices[idx]));
+  closeModal();render();toast(t('✅ 수정됨','✅ Updated'));
 }
-function deleteNotice(id){confirmModal(t('이 공지를 삭제할까요?','Delete this notice?'),function(){S.notices=S.notices.filter(n=>n.id!==id);saveData();render();toast(t('삭제됨','Deleted'));});}
+function deleteNotice(id){confirmModal(t('이 공지를 삭제할까요?','Delete this notice?'),function(){S.notices=S.notices.filter(n=>n.id!==id);supa.delete('notices',id);render();toast(t('삭제됨','Deleted'));});}
 
 // ── 문의 관리 ──
 function renderAdminInq(){
@@ -794,8 +886,9 @@ ${userAreas.map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:
 function submitArea(){
   const ko=document.getElementById('ar_ko')?.value?.trim(),en=document.getElementById('ar_en')?.value?.trim();
   if(!ko||!en){toast(t('이름을 입력하세요','Enter name'));return;}
-  S.areas.push({id:'area_'+Date.now(),ko,en});
-  saveData();render();toast(t('✅ 지역 추가됨','✅ Added'));
+  const a={id:'area_'+Date.now(),ko,en,sortOrder:S.areas.length+1};
+  S.areas.push(a);
+  saveArea(a).then(()=>{render();toast(t('✅ 지역 추가됨','✅ Added'));});
 }
 function deleteArea(id){
   const cnt=S.bizs.filter(b=>b.area===id).length;
@@ -803,7 +896,8 @@ function deleteArea(id){
   confirmModal(msg,function(){
     S.areas=S.areas.filter(a=>a.id!==id);
     if(S.area===id)S.area='all';
-    saveData();render();toast(t('삭제됨','Deleted'));
+    supa.deleteWhere('areas','id',id);
+    render();toast(t('삭제됨','Deleted'));
   });
 }
 function openEditArea(id){
@@ -817,8 +911,11 @@ function saveEditArea(id){
   const ko=document.getElementById('ea_ko')?.value?.trim(),en=document.getElementById('ea_en')?.value?.trim();
   if(!ko||!en){toast(t('이름을 입력하세요','Enter name'));return;}
   const idx=(S.areas||DEFAULT_AREAS).findIndex(a=>a.id===id);
-  if(idx>-1)S.areas[idx]={...S.areas[idx],ko,en};
-  saveData();closeModal();render();toast(t('✅ 수정됨','✅ Updated'));
+  if(idx>-1){
+    S.areas[idx]={...S.areas[idx],ko,en};
+    supa.upsert('areas',areaToRow(S.areas[idx]),'id');
+  }
+  closeModal();render();toast(t('✅ 수정됨','✅ Updated'));
 }
 
 // ── 카테고리 관리 ──
@@ -950,40 +1047,65 @@ const supa = {
     });
   }
 };
+
+// saveData는 이제 로컬 설정만 저장 (카테고리, 비밀번호 등)
 async function saveData(){
   try{
-    const data = JSON.stringify({bizs:S.bizs,cats:S.cats,areas:S.areas,notices:S.notices,inquiries:S.inquiries,adminPw:S.adminPw});
-    localStorage.setItem('kjigi_v2', data);
-  }catch(e){console.warn('저장 실패:',e);}
+    localStorage.setItem('kjigi_settings',JSON.stringify({cats:S.cats,adminPw:S.adminPw}));
+  }catch(e){}
 }
+
+// 모든 데이터 Supabase에서 불러오기
 async function loadAll(){
-  // 1. Supabase에서 업체 데이터 불러오기
-  try {
-    const rows = await supa.get('businesses');
-    if(rows && rows.length > 0) {
-      S.bizs = rows.map(rowToBiz);
-      console.log('✅ Supabase에서 ' + rows.length + '개 업체 로드');
-    }
-  } catch(e) {
-    console.warn('⚠️ Supabase 로드 실패:', e);
-  }
+  console.log('🔄 데이터 로딩 시작...');
   
-  // 2. localStorage에서 기타 설정
+  // 1. 업체 데이터
+  try {
+    const bizRows = await supa.get('businesses');
+    if(bizRows?.length) {
+      S.bizs = bizRows.map(rowToBiz);
+      console.log('✅ 업체:', bizRows.length + '개');
+    }
+  } catch(e) { console.warn('⚠️ 업체 로드 실패:', e); }
+  
+  // 2. 공지사항
+  try {
+    const noticeRows = await supa.get('notices');
+    if(noticeRows?.length) {
+      S.notices = noticeRows.map(rowToNotice);
+      console.log('✅ 공지:', noticeRows.length + '개');
+    }
+  } catch(e) { console.warn('⚠️ 공지 로드 실패:', e); }
+  
+  // 3. 지역
+  try {
+    const areaRows = await supa.get('areas');
+    if(areaRows?.length) {
+      S.areas = areaRows.map(rowToArea).sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));
+      console.log('✅ 지역:', areaRows.length + '개');
+    }
+  } catch(e) { console.warn('⚠️ 지역 로드 실패:', e); }
+  
+  // 4. 문의
+  try {
+    const inqRows = await supa.get('inquiries');
+    if(inqRows?.length) {
+      S.inquiries = inqRows.map(rowToInq);
+      console.log('✅ 문의:', inqRows.length + '개');
+    }
+  } catch(e) { console.warn('⚠️ 문의 로드 실패:', e); }
+  
+  // 5. 로컬 설정 (카테고리, 비밀번호)
   try{
-    const saved = localStorage.getItem('kjigi_v2');
+    const saved = localStorage.getItem('kjigi_settings');
     if(saved){
       const d=JSON.parse(saved);
-      if(!S.bizs.length && d.bizs?.length) S.bizs=d.bizs;
       if(d.cats?.length)S.cats=d.cats;
-      // 핵심 수정: Array.isArray로 체크해서 빈 배열도 유지
-      if(Array.isArray(d.areas))S.areas=d.areas;
-      else S.areas=[...DEFAULT_AREAS];
-      if(d.notices?.length)S.notices=d.notices;
-      if(d.inquiries)S.inquiries=d.inquiries;
       if(d.adminPw)S.adminPw=d.adminPw;
     }
-  }catch(e){S.areas=[...DEFAULT_AREAS];}
+  }catch(e){}
   
+  console.log('✅ 로딩 완료!');
   checkTierExpiry();
   render();
 }
