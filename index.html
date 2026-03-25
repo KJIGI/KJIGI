@@ -1205,10 +1205,10 @@ const supa = {
   }
 };
 
-// saveData는 이제 로컬 설정만 저장 (카테고리, 비밀번호 등)
+// saveData는 이제 로컬 설정만 저장 (비밀번호만 - cats는 Supabase에 저장)
 async function saveData(){
   try{
-    localStorage.setItem('kjigi_settings',JSON.stringify({cats:S.cats,adminPw:S.adminPw}));
+    localStorage.setItem('kjigi_settings',JSON.stringify({adminPw:S.adminPw}));
   }catch(e){}
 }
 
@@ -1283,12 +1283,12 @@ async function loadAll(){
     }
   } catch(e) { console.warn('⚠️ 문의 로드 실패:', e); }
   
-  // 5. 로컬 설정 (카테고리, 비밀번호)
+  // 5. 로컬 설정 (비밀번호만 - cats는 Supabase에서 로드)
   try{
     const saved = localStorage.getItem('kjigi_settings');
     if(saved){
       const d=JSON.parse(saved);
-      if(d.cats?.length)S.cats=d.cats;
+      // cats는 Supabase에서 로드하므로 여기서 덮어쓰지 않음!
       if(d.adminPw)S.adminPw=d.adminPw;
     }
   }catch(e){}
