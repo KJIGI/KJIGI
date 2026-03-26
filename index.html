@@ -195,6 +195,17 @@ select.fi{appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='
 .lb-bg{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px}
 .lb-bg img{max-width:100%;max-height:100%;border-radius:10px;object-fit:contain}
 .lb-close{position:fixed;top:16px;right:20px;background:none;border:none;color:#fff;font-size:32px;cursor:pointer;z-index:601}
+/* 스와이프 갤러리 */
+.gallery-bg{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:600;display:flex;align-items:center;justify-content:center}
+.gallery-close{position:fixed;top:16px;right:20px;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:28px;width:44px;height:44px;border-radius:50%;cursor:pointer;z-index:601}
+.gallery-img-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:60px 50px;max-height:100vh;overflow:hidden}
+.gallery-img-wrap img{max-width:100%;max-height:calc(100vh - 120px);object-fit:contain;border-radius:8px;user-select:none;-webkit-user-drag:none}
+.gallery-nav{position:fixed;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;font-size:40px;width:50px;height:80px;cursor:pointer;z-index:601;border-radius:8px;transition:background .2s}
+.gallery-nav:hover{background:rgba(255,255,255,.3)}
+.gallery-nav.prev{left:10px}
+.gallery-nav.next{right:10px}
+.gallery-counter{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;padding:8px 20px;border-radius:20px;font-size:14px;font-weight:600;z-index:601}
+@media(max-width:600px){.gallery-nav{width:40px;height:60px;font-size:30px}.gallery-img-wrap{padding:60px 10px}}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:400;display:flex;align-items:flex-end;justify-content:center}
 .modal{background:#fff;border-radius:18px 18px 0 0;padding:clamp(18px,4.5vw,28px) clamp(16px,4vw,26px) clamp(26px,6vw,38px);width:100%;max-width:700px;max-height:92vh;overflow-y:auto}
 .modal h3{font-size:var(--f-md);font-weight:700;margin-bottom:clamp(12px,3vw,18px);font-family:'Jua',sans-serif}
@@ -350,7 +361,64 @@ function getFiltered(){
 function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2500);}
 function openKakao(k){if(!k)return;try{navigator.clipboard.writeText(k);}catch(e){}toast(t(`카카오 ID: ${k} (복사됨)`,`KakaoTalk: ${k} (copied)`));}
 function openMap(lat,lng){window.open(`https://maps.google.com/maps?q=${lat},${lng}&z=16`,'_blank');}
-function openLightbox(src){document.getElementById('modal-root').innerHTML=`<div class="lb-bg" onclick="closeModal()"><button class="lb-close">✕</button><img src="${src}"></div>`;}
+
+// 스와이프 갤러리
+let _galImgs=[], _galIdx=0;
+function openGallery(imgs, startIdx=0){
+  _galImgs = Array.isArray(imgs) ? imgs : [imgs];
+  _galIdx = startIdx;
+  renderGallery();
+}
+function openLightbox(src, allImgs, idx){
+  // 단일 이미지면 배열로, 배열이면 그대로
+  if(allImgs && Array.isArray(allImgs)){
+    openGallery(allImgs, idx || 0);
+  } else {
+    openGallery([src], 0);
+  }
+}
+function renderGallery(){
+  const total = _galImgs.length;
+  const hasNav = total > 1;
+  document.getElementById('modal-root').innerHTML=`
+<div class="gallery-bg" onclick="if(event.target===this)closeModal()">
+  <button class="gallery-close" onclick="closeModal()">✕</button>
+  ${hasNav?`<button class="gallery-nav prev" onclick="galPrev()">‹</button>`:''}
+  <div class="gallery-img-wrap" id="galWrap">
+    <img src="${_galImgs[_galIdx]}" onclick="event.stopPropagation()">
+  </div>
+  ${hasNav?`<button class="gallery-nav next" onclick="galNext()">›</button>`:''}
+  ${hasNav?`<div class="gallery-counter">${_galIdx+1} / ${total}</div>`:''}
+</div>`;
+  // 터치 스와이프 설정
+  setTimeout(()=>{
+    const wrap = document.getElementById('galWrap');
+    if(!wrap) return;
+    let startX=0, startY=0, moved=false;
+    wrap.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;startY=e.touches[0].clientY;moved=false;},{passive:true});
+    wrap.addEventListener('touchmove',e=>{moved=true;},{passive:true});
+    wrap.addEventListener('touchend',e=>{
+      if(!moved)return;
+      const endX=e.changedTouches[0].clientX;
+      const endY=e.changedTouches[0].clientY;
+      const diffX=endX-startX;
+      const diffY=endY-startY;
+      if(Math.abs(diffX)>Math.abs(diffY) && Math.abs(diffX)>50){
+        if(diffX<0) galNext(); else galPrev();
+      }
+    },{passive:true});
+  },100);
+}
+function galNext(){
+  if(_galImgs.length<=1)return;
+  _galIdx=(_galIdx+1)%_galImgs.length;
+  renderGallery();
+}
+function galPrev(){
+  if(_galImgs.length<=1)return;
+  _galIdx=(_galIdx-1+_galImgs.length)%_galImgs.length;
+  renderGallery();
+}
 function fileToBase64(file){return new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(file);});}
 
 // 커스텀 confirm
@@ -445,7 +513,7 @@ function renderDetail(){
   const tierCol={premium:'#92400e',standard:'#5b21b6',free:'#64748b'}[b.tier];
   const tierBg={premium:'#fef3c7',standard:'#ede9fe',free:'#f1f5f9'}[b.tier];
   const photoHtml=b.photo?`<img src="${b.photo}" alt="${nm(b)}">`:`<div class="det-photo-ph"><span>${ci(b.cat)}</span><p>${t('사진 없음','No Photo')}</p></div>`;
-  const menuHtml=(b.menuPhotos&&b.menuPhotos.length)?`<div class="divider"></div><div style="font-size:var(--f-sm);font-weight:700;margin-bottom:10px">📋 ${t('메뉴 / 가격표','Menu / Price List')}</div><div class="menu-imgs">${b.menuPhotos.map(src=>`<div class="menu-img-item" onclick="openLightbox('${src}')"><img src="${src}" alt="menu"></div>`).join('')}</div>`:'';
+  const menuHtml=(b.menuPhotos&&b.menuPhotos.length)?`<div class="divider"></div><div style="font-size:var(--f-sm);font-weight:700;margin-bottom:10px">📋 ${t('메뉴 / 가격표','Menu / Price List')}</div><div class="menu-imgs">${b.menuPhotos.map((src,i)=>`<div class="menu-img-item" onclick="openLightbox('${src}',${JSON.stringify(b.menuPhotos).replace(/"/g,'&quot;')},${i})"><img src="${src}" alt="menu"></div>`).join('')}</div>`:'';
   return`<div class="hdr"><button class="hdr-back" onclick="goBack()">←</button><span class="hdr-title">${nm(b)}</span><button class="lang-btn" onclick="toggleLang()">${S.lang==='ko'?'EN':'한'}</button></div>
 <div class="det-photo">${photoHtml}</div>
 <div class="det-body">
@@ -546,6 +614,9 @@ function bizFormHTML(prefix, b){
 <div class="fg"><label class="fl">${t('세부 분류','Subcat')}</label><select class="fi" id="${prefix}_subcat"><option value="">${t('선택 안함','None')}</option>${subs}</select></div></div>
 <div class="fg"><label class="fl">${t('지역','Area')}</label><select class="fi" id="${prefix}_area">${areas}</select></div>
 <div class="fg"><label class="fl">${t('주소','Address')}</label><input class="fi" id="${prefix}_aKo" value="${v('aKo')}"></div>
+<div class="frow"><div class="fg"><label class="fl">📍 ${t('위도','Lat')}</label><input class="fi" id="${prefix}_lat" type="number" step="0.0001" value="${b?.lat||''}" placeholder="15.1850"></div>
+<div class="fg"><label class="fl">📍 ${t('경도','Lng')}</label><input class="fi" id="${prefix}_lng" type="number" step="0.0001" value="${b?.lng||''}" placeholder="120.5450"></div></div>
+<div style="font-size:11px;color:var(--t2);margin-bottom:12px;padding:6px 10px;background:#f1f5f9;border-radius:6px">💡 <a href="https://www.google.com/maps" target="_blank" style="color:#0284c7">${t('Google Maps','Google Maps')}</a>${t('에서 업소 위치 우클릭 → 좌표 복사',' → Right-click location → Copy coordinates')}</div>
 <div class="frow"><div class="fg"><label class="fl">${t('전화번호','Phone')}</label><input class="fi" id="${prefix}_ph" type="tel" value="${v('phone')}" placeholder="0917-000-0000"></div>
 <div class="fg"><label class="fl">KakaoTalk ID</label><input class="fi" id="${prefix}_kk" value="${v('kakao')}"></div></div>
 <div class="frow"><div class="fg"><label class="fl">${t('영업시간','Hours')}</label><input class="fi" id="${prefix}_hrs" value="${v('hrs')}" placeholder="09:00-22:00"></div>
@@ -750,7 +821,7 @@ function submitBiz(){
   const btn = document.querySelector('.card-box .btn');
   if(btn) { btn.disabled = true; btn.textContent = t('등록 중...','Saving...'); }
   
-  const b={cat:g('f_cat')||'etc',subcat:g('f_subcat')||'',tier:g('f_tier')||'free',nKo,area:g('f_area')||'clark',phone:g('f_ph'),kakao:g('f_kk'),aKo:g('f_aKo'),dKo:g('f_dKo'),hrs:g('f_hrs')||'09:00-22:00',promo:g('f_promo'),adminMemo:g('f_memo'),tierExpiry:g('f_expiry'),photo:'',menuPhotos:[],grad:GR[Math.floor(Math.random()*GR.length)],lat:15.17+Math.random()*.02,lng:120.53+Math.random()*.03,open:document.getElementById('f_open')?.checked??true};
+  const b={cat:g('f_cat')||'etc',subcat:g('f_subcat')||'',tier:g('f_tier')||'free',nKo,area:g('f_area')||'clark',phone:g('f_ph'),kakao:g('f_kk'),aKo:g('f_aKo'),dKo:g('f_dKo'),hrs:g('f_hrs')||'09:00-22:00',promo:g('f_promo'),adminMemo:g('f_memo'),tierExpiry:g('f_expiry'),photo:'',menuPhotos:[],grad:GR[Math.floor(Math.random()*GR.length)],lat:parseFloat(g('f_lat'))||15.18,lng:parseFloat(g('f_lng'))||120.54,open:document.getElementById('f_open')?.checked??true};
   
   S.bizs.push(b);
   saveBiz(b).then((result)=>{
@@ -767,7 +838,7 @@ function saveEditBiz(id){
   const g=id2=>document.getElementById(id2)?.value?.trim()||'';
   const nKo=g('e_nKo');if(!nKo){toast(t('업체명을 입력하세요','Enter name'));return;}
   const idx=S.bizs.findIndex(b=>b.id===id);if(idx<0)return;
-  S.bizs[idx]={...S.bizs[idx],nKo,cat:g('e_cat'),subcat:g('e_subcat'),tier:g('e_tier'),area:g('e_area'),phone:g('e_ph'),kakao:g('e_kk'),aKo:g('e_aKo'),dKo:g('e_dKo'),hrs:g('e_hrs'),promo:g('e_promo'),adminMemo:g('e_memo'),tierExpiry:g('e_expiry'),open:document.getElementById('e_open')?.checked??true};
+  S.bizs[idx]={...S.bizs[idx],nKo,cat:g('e_cat'),subcat:g('e_subcat'),tier:g('e_tier'),area:g('e_area'),phone:g('e_ph'),kakao:g('e_kk'),aKo:g('e_aKo'),dKo:g('e_dKo'),hrs:g('e_hrs'),promo:g('e_promo'),adminMemo:g('e_memo'),tierExpiry:g('e_expiry'),lat:parseFloat(g('e_lat'))||S.bizs[idx].lat,lng:parseFloat(g('e_lng'))||S.bizs[idx].lng,open:document.getElementById('e_open')?.checked??true};
   supa.update('businesses',id,bizToRow(S.bizs[idx]));
   closeModal();render();toast(t('✅ 수정됐습니다','✅ Saved'));
 }
@@ -935,6 +1006,7 @@ ${S.cats.map(c=>{
 <div style="flex:1;min-width:0"><div class="cat-nm-ko">${c.ko}</div><div class="cat-nm-en">${c.en}</div></div>
 <span class="cat-cnt-sm">${S.bizs.filter(b=>b.cat===c.id).length}${t('개','')}</span>
 <button class="ic-btn ed" onclick="openEditCat('${c.id}')">✏️</button>
+<button class="ic-btn dl" onclick="deleteCat('${c.id}')">${t('삭제','Del')}</button>
 </div>
 <div style="padding-left:38px">
 <div style="font-size:var(--f-xs);color:var(--t2);margin-bottom:6px">📌 ${t('세부분류','Subcats')}: ${subcats.length>0?subcats.join(', '):t('없음','None')}</div>
@@ -1236,9 +1308,9 @@ async function loadAll(){
           SUBCATS[c.id] = c.subcats;
         }
       });
-      // 디버깅: 로드된 카테고리 확인
+      // 디버깅: 로드된 카테고리 확인 (sort_order 포함)
       console.log('✅ 카테고리:', catRows.length + '개');
-      S.cats.forEach(c => console.log('  📂', c.id, c.ko, 'subcats:', c.subcats));
+      S.cats.forEach(c => console.log('  📂', c.id, c.ko, 'order:', c.sortOrder, 'subcats:', c.subcats));
     }
   } catch(e) { console.warn('⚠️ 카테고리 로드 실패:', e); }
   
