@@ -544,33 +544,84 @@ function renderNotice(){
 }
 
 function renderInquiry(){
-  const myInqs=S.inquiries.slice().reverse();
   return`<div class="hdr"><button class="hdr-back" onclick="goHome()">←</button><span class="hdr-title">💬 ${t('문의하기','Inquiry')}</span></div>
-<div style="padding:clamp(12px,3vw,18px)"><div class="card-box"><h3>✍️ ${t('문의 작성','Send Inquiry')}</h3>
-<div class="fg"><label class="fl">${t('이름 / 닉네임','Name')}</label><input class="fi" id="inq_name" placeholder="${t('홍길동','Your name')}"></div>
-<div class="fg"><label class="fl">${t('연락처 (카카오ID / 전화 / 이메일)','Contact')}</label><input class="fi" id="inq_contact" placeholder="${t('선택 입력','Optional')}"></div>
-<div class="fg"><label class="fl">${t('문의 내용','Message')}</label><textarea class="fi" id="inq_msg" rows="4" placeholder="${t('광고 문의, 업체 등록 요청, 오류 신고 등','Ads, registration, bugs, etc.')}"></textarea></div>
-<button class="btn" onclick="submitInquiry()">${t('문의 보내기','Send')}</button></div>
-<div style="font-size:var(--f-md);font-weight:700;margin-bottom:12px">${t('내 문의 내역','My Inquiries')} (${myInqs.length})</div>
-${myInqs.length===0?`<div class="empty" style="padding:30px 20px"><div class="empty-ic">💭</div><p>${t('아직 문의 내역이 없어요','No inquiries yet')}</p></div>`:myInqs.map(inq=>`<div class="inq-item"><div class="inq-header"><span class="inq-name">${inq.name}</span><span class="inq-status ${inq.reply?'done':'wait'}">${inq.reply?t('답변완료','Answered'):t('답변대기','Pending')}</span></div><div style="font-size:var(--f-xs);color:var(--t2);margin-bottom:7px">${fmtDate(inq.date)}</div><div class="inq-msg">${inq.msg}</div>${inq.reply?`<div class="inq-reply"><div class="inq-reply-lbl">💬 K지기 ${t('운영자 답변','Admin Reply')}</div><div class="inq-reply-body">${inq.reply}</div></div>`:''}</div>`).join('')}
+<div style="padding:clamp(12px,3vw,18px)">
+
+<div class="card-box"><h3>✍️ ${t('문의 작성','Send Inquiry')}</h3>
+<div class="fg"><label class="fl">${t('이름 / 닉네임','Name')} <span style="color:#ef4444">*</span></label><input class="fi" id="inq_name" placeholder="${t('홍길동','Your name')}"></div>
+<div class="fg"><label class="fl">${t('비밀번호','Password')} <span style="color:#ef4444">*</span></label><input class="fi" id="inq_pw" type="password" placeholder="${t('답변 확인용 (4자리 이상)','For checking reply')}"></div>
+<div class="fg"><label class="fl">${t('연락처 (선택)','Contact (Optional)')}</label><input class="fi" id="inq_contact" placeholder="${t('카카오ID / 전화 / 이메일','KakaoID / Phone / Email')}"></div>
+<div class="fg"><label class="fl">${t('문의 내용','Message')} <span style="color:#ef4444">*</span></label><textarea class="fi" id="inq_msg" rows="4" placeholder="${t('광고 문의, 업체 등록 요청, 오류 신고 등','Ads, registration, bugs, etc.')}"></textarea></div>
+<button class="btn" onclick="submitInquiry()">${t('문의 보내기','Send')}</button>
+</div>
+
+<div class="card-box" style="margin-top:16px"><h3>🔍 ${t('내 문의 확인','Check My Inquiry')}</h3>
+<p style="font-size:var(--f-xs);color:var(--t2);margin-bottom:12px">${t('문의 시 입력한 이름과 비밀번호로 답변을 확인하세요.','Enter your name and password to check the reply.')}</p>
+<div class="fg"><label class="fl">${t('이름','Name')}</label><input class="fi" id="chk_name" placeholder="${t('문의 시 입력한 이름','Name you used')}"></div>
+<div class="fg"><label class="fl">${t('비밀번호','Password')}</label><input class="fi" id="chk_pw" type="password" placeholder="${t('비밀번호','Password')}"></div>
+<button class="btn sec" onclick="checkMyInquiry()">${t('문의 확인','Check')}</button>
+<div id="my-inq-result"></div>
+</div>
+
 </div>`;
 }
 
 function submitInquiry(){
-  const name=document.getElementById('inq_name')?.value?.trim()||t('익명','Anonymous');
+  const name=document.getElementById('inq_name')?.value?.trim();
+  const pw=document.getElementById('inq_pw')?.value?.trim();
   const contact=document.getElementById('inq_contact')?.value?.trim()||'';
   const msg=document.getElementById('inq_msg')?.value?.trim();
+  
+  if(!name){toast(t('이름을 입력하세요','Enter your name'));return;}
+  if(!pw || pw.length < 4){toast(t('비밀번호 4자리 이상 입력하세요','Password must be at least 4 characters'));return;}
   if(!msg){toast(t('문의 내용을 입력하세요','Enter your message'));return;}
-  const inq={name,contact,msg,date:today(),reply:'',isNew:true};
+  
+  const inq={name,pw,contact,msg,date:today(),reply:'',isNew:true};
   S.inquiries.push(inq);
-  saveInquiry(inq).then(()=>{render();});
+  saveInquiry(inq).then(()=>{
+    document.getElementById('inq_name').value='';
+    document.getElementById('inq_pw').value='';
+    document.getElementById('inq_contact').value='';
+    document.getElementById('inq_msg').value='';
+  });
   toast(t('✅ 문의가 접수됐습니다! 빠른 시일 내에 답변드릴게요 😊','✅ Inquiry submitted!'));
-  if('Notification' in window && Notification.permission==='default'){
-    Notification.requestPermission();
+}
+
+function checkMyInquiry(){
+  const name=document.getElementById('chk_name')?.value?.trim();
+  const pw=document.getElementById('chk_pw')?.value?.trim();
+  const resultDiv=document.getElementById('my-inq-result');
+  
+  if(!name||!pw){
+    toast(t('이름과 비밀번호를 입력하세요','Enter name and password'));
+    return;
   }
-  if('Notification' in window && Notification.permission==='granted'){
-    new Notification('K지기 새 문의 접수',{body:name+': '+msg.slice(0,50),icon:'/icon-192.png'});
+  
+  // 이름과 비밀번호가 일치하는 문의 찾기
+  const myInqs=S.inquiries.filter(i=>i.name===name && i.pw===pw).reverse();
+  
+  if(myInqs.length===0){
+    resultDiv.innerHTML=`<div style="text-align:center;padding:20px;color:var(--t2);background:#f8fafc;border-radius:10px;margin-top:12px">
+      <div style="font-size:24px;margin-bottom:8px">🔍</div>
+      <p>${t('일치하는 문의가 없습니다.','No matching inquiries found.')}</p>
+      <p style="font-size:var(--f-xs)">${t('이름과 비밀번호를 확인해주세요.','Please check your name and password.')}</p>
+    </div>`;
+    return;
   }
+  
+  resultDiv.innerHTML=`<div style="margin-top:16px;font-size:var(--f-sm);font-weight:700;margin-bottom:10px">📋 ${t('내 문의 내역','My Inquiries')} (${myInqs.length})</div>
+    ${myInqs.map(inq=>`<div class="inq-item">
+      <div class="inq-header">
+        <span class="inq-name">${inq.name}</span>
+        <span class="inq-status ${inq.reply?'done':'wait'}">${inq.reply?t('답변완료','Answered'):t('답변대기','Pending')}</span>
+      </div>
+      <div style="font-size:var(--f-xs);color:var(--t2);margin-bottom:7px">${fmtDate(inq.date)}</div>
+      <div class="inq-msg">${inq.msg}</div>
+      ${inq.reply?`<div class="inq-reply">
+        <div class="inq-reply-lbl">💬 K지기 ${t('운영자 답변','Admin Reply')}</div>
+        <div class="inq-reply-body">${inq.reply}</div>
+      </div>`:`<div style="color:var(--t2);font-size:var(--f-xs);margin-top:8px;padding:10px;background:#fef9c3;border-radius:6px">⏳ ${t('답변 대기 중입니다. 조금만 기다려주세요!','Waiting for reply. Please wait!')}</div>`}
+    </div>`).join('')}`;
 }
 
 // ══ 관리자 ════════════════════════════════════════════════════
@@ -738,7 +789,8 @@ function inqToRow(i){
     msg: i.msg || '',
     reply: i.reply || '',
     is_new: i.isNew !== false,
-    inq_date: i.date || today()
+    inq_date: i.date || today(),
+    pw: i.pw || ''
   };
 }
 function rowToInq(r){
@@ -749,7 +801,8 @@ function rowToInq(r){
     msg: r.msg || '',
     reply: r.reply || '',
     isNew: r.is_new !== false,
-    date: r.inq_date || r.created_at?.slice(0,10) || ''
+    date: r.inq_date || r.created_at?.slice(0,10) || '',
+    pw: r.pw || ''
   };
 }
 
