@@ -1284,88 +1284,83 @@ async function saveData(){
   }catch(e){}
 }
 
-// 모든 데이터 Supabase에서 불러오기
+// 모든 데이터 Supabase에서 불러오기 (병렬 로딩)
 async function loadAll(){
   console.log('🔄 데이터 로딩 시작...');
+  const startTime = Date.now();
   
-  // 0. 카테고리 (세부분류 포함)
-  try {
-    const catRows = await supa.get('categories');
-    if(catRows?.length) {
-      S.cats = catRows.map(r => ({
-        id: r.id,
-        ic: r.ic || '📌',
-        ko: r.ko || '',
-        en: r.en || '',
-        sortOrder: r.sort_order || 99,
-        // subcats가 문자열이면 파싱, 배열이면 그대로
-        subcats: typeof r.subcats === 'string' ? JSON.parse(r.subcats) : (r.subcats || [])
-      })).sort((a,b) => (a.sortOrder||99) - (b.sortOrder||99));
-      // SUBCATS 객체 업데이트
-      SUBCATS = {};
-      S.cats.forEach(c => {
-        if(c.subcats && c.subcats.length > 0) {
-          SUBCATS[c.id] = c.subcats;
-        }
-      });
-      // 디버깅: 로드된 카테고리 확인 (sort_order 포함)
-      console.log('✅ 카테고리:', catRows.length + '개');
-      S.cats.forEach(c => console.log('  📂', c.id, c.ko, 'order:', c.sortOrder, 'subcats:', c.subcats));
-    }
-  } catch(e) { console.warn('⚠️ 카테고리 로드 실패:', e); }
+  // 로딩 화면 표시
+  document.getElementById('app').innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:var(--bg)">
+      <div style="font-size:48px;margin-bottom:16px">🇰🇷</div>
+      <h1 style="font-size:28px;font-weight:800;margin-bottom:8px"><span style="color:#fbbf24">K</span>지기</h1>
+      <p style="color:var(--t2);font-size:14px">로딩 중...</p>
+    </div>`;
   
-  // 1. 업체 데이터
-  try {
-    const bizRows = await supa.get('businesses');
-    if(bizRows?.length) {
-      S.bizs = bizRows.map(rowToBiz);
-      console.log('✅ 업체:', bizRows.length + '개');
-    }
-  } catch(e) { console.warn('⚠️ 업체 로드 실패:', e); }
+  // 모든 테이블 병렬로 로드
+  const [catRows, bizRows, noticeRows, areaRows, inqRows] = await Promise.all([
+    supa.get('categories').catch(e => { console.warn('⚠️ 카테고리 로드 실패:', e); return []; }),
+    supa.get('businesses').catch(e => { console.warn('⚠️ 업체 로드 실패:', e); return []; }),
+    supa.get('notices').catch(e => { console.warn('⚠️ 공지 로드 실패:', e); return []; }),
+    supa.get('areas').catch(e => { console.warn('⚠️ 지역 로드 실패:', e); return []; }),
+    supa.get('inquiries').catch(e => { console.warn('⚠️ 문의 로드 실패:', e); return []; })
+  ]);
   
-  // 2. 공지사항
-  try {
-    const noticeRows = await supa.get('notices');
-    if(noticeRows?.length) {
-      S.notices = noticeRows.map(rowToNotice);
-      console.log('✅ 공지:', noticeRows.length + '개');
-    }
-  } catch(e) { console.warn('⚠️ 공지 로드 실패:', e); }
+  // 카테고리 처리
+  if(catRows?.length) {
+    S.cats = catRows.map(r => ({
+      id: r.id,
+      ic: r.ic || '📌',
+      ko: r.ko || '',
+      en: r.en || '',
+      sortOrder: r.sort_order || 99,
+      subcats: typeof r.subcats === 'string' ? JSON.parse(r.subcats) : (r.subcats || [])
+    })).sort((a,b) => (a.sortOrder||99) - (b.sortOrder||99));
+    SUBCATS = {};
+    S.cats.forEach(c => {
+      if(c.subcats && c.subcats.length > 0) SUBCATS[c.id] = c.subcats;
+    });
+    console.log('✅ 카테고리:', catRows.length + '개');
+  }
   
-  // 3. 지역
-  try {
-    const areaRows = await supa.get('areas');
-    if(areaRows?.length) {
-      // 'all'(전체)이 항상 맨 앞에 오도록 정렬
-      S.areas = areaRows.map(rowToArea).sort((a,b)=>{
-        if(a.id==='all') return -1;
-        if(b.id==='all') return 1;
-        return (a.sortOrder||99)-(b.sortOrder||99);
-      });
-      console.log('✅ 지역:', areaRows.length + '개');
-    }
-  } catch(e) { console.warn('⚠️ 지역 로드 실패:', e); }
+  // 업체 처리
+  if(bizRows?.length) {
+    S.bizs = bizRows.map(rowToBiz);
+    console.log('✅ 업체:', bizRows.length + '개');
+  }
   
-  // 4. 문의
-  try {
-    const inqRows = await supa.get('inquiries');
-    if(inqRows?.length) {
-      S.inquiries = inqRows.map(rowToInq);
-      console.log('✅ 문의:', inqRows.length + '개');
-    }
-  } catch(e) { console.warn('⚠️ 문의 로드 실패:', e); }
+  // 공지 처리
+  if(noticeRows?.length) {
+    S.notices = noticeRows.map(rowToNotice);
+    console.log('✅ 공지:', noticeRows.length + '개');
+  }
   
-  // 5. 로컬 설정 (비밀번호만 - cats는 Supabase에서 로드)
+  // 지역 처리
+  if(areaRows?.length) {
+    S.areas = areaRows.map(rowToArea).sort((a,b)=>{
+      if(a.id==='all') return -1;
+      if(b.id==='all') return 1;
+      return (a.sortOrder||99)-(b.sortOrder||99);
+    });
+    console.log('✅ 지역:', areaRows.length + '개');
+  }
+  
+  // 문의 처리
+  if(inqRows?.length) {
+    S.inquiries = inqRows.map(rowToInq);
+    console.log('✅ 문의:', inqRows.length + '개');
+  }
+  
+  // 로컬 설정 (비밀번호만)
   try{
     const saved = localStorage.getItem('kjigi_settings');
     if(saved){
       const d=JSON.parse(saved);
-      // cats는 Supabase에서 로드하므로 여기서 덮어쓰지 않음!
       if(d.adminPw)S.adminPw=d.adminPw;
     }
   }catch(e){}
   
-  console.log('✅ 로딩 완료!');
+  console.log('✅ 로딩 완료! (' + (Date.now() - startTime) + 'ms)');
   checkTierExpiry();
   render();
 }
