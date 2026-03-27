@@ -534,7 +534,7 @@ function renderList(){
   const areas=S.areas||DEFAULT_AREAS;
   const list=getFiltered();
   const subs=S.cat?(SUBCATS[S.cat]||[]):[];
-  return`<div class="hdr"><button class="hdr-back" onclick="goHome()">←</button><span class="hdr-title">${ci(S.cat)} ${cn(S.cat)}${S.subcat?' · '+S.subcat:''} (${list.length})</span><button class="lang-btn" onclick="toggleLang()">${S.lang==='ko'?'EN':'한'}</button></div>
+  return`<div class="hdr"><button class="hdr-back" onclick="history.back()">←</button><span class="hdr-title">${ci(S.cat)} ${cn(S.cat)}${S.subcat?' · '+S.subcat:''} (${list.length})</span><button class="lang-btn" onclick="toggleLang()">${S.lang==='ko'?'EN':'한'}</button></div>
 <div class="l-bar"><input id="ls" type="search" placeholder="${t('검색...','Search...')}" value="${S.q}" oninput="onQL(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></div>
 <div class="area-bar">${areas.map(a=>`<button class="a-btn${S.area===a.id?' on':''}" onclick="setArea2('${a.id}')">${t(a.ko,a.en)}</button>`).join('')}</div>
 ${subs.length?`<div class="sub-bar"><button class="s-btn${!S.subcat?' on':''}" onclick="setSub(null)">${t('전체','All')}</button>${subs.map(s=>`<button class="s-btn${S.subcat===s?' on':''}" onclick="setSub('${s}')">${s}</button>`).join('')}</div>`:''}
@@ -548,7 +548,7 @@ function renderDetail(){
   const tierBg={premium:'#fef3c7',standard:'#ede9fe',free:'#f1f5f9'}[b.tier];
   const photoHtml=b.photo?`<img src="${b.photo}" alt="${nm(b)}">`:`<div class="det-photo-ph"><span>${ci(b.cat)}</span><p>${t('사진 없음','No Photo')}</p></div>`;
   const menuHtml=(b.menuPhotos&&b.menuPhotos.length)?`<div class="divider"></div><div style="font-size:var(--f-sm);font-weight:700;margin-bottom:10px">📋 ${t('메뉴 / 가격표','Menu / Price List')}</div><div class="menu-imgs">${b.menuPhotos.map((src,i)=>`<div class="menu-img-item" onclick="openLightbox('${src}',${JSON.stringify(b.menuPhotos).replace(/"/g,'&quot;')},${i})"><img src="${src}" alt="menu"></div>`).join('')}</div>`:'';
-  return`<div class="hdr"><button class="hdr-back" onclick="goBack()">←</button><span class="hdr-title">${nm(b)}</span><button class="lang-btn" onclick="toggleLang()">${S.lang==='ko'?'EN':'한'}</button></div>
+  return`<div class="hdr"><button class="hdr-back" onclick="history.back()">←</button><span class="hdr-title">${nm(b)}</span><button class="lang-btn" onclick="toggleLang()">${S.lang==='ko'?'EN':'한'}</button></div>
 <div class="det-photo">${photoHtml}</div>
 <div class="det-body">
 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px"><div class="det-nm">${nm(b)}</div><span style="background:${tierBg};color:${tierCol};border-radius:12px;padding:3px 11px;font-size:var(--f-xs);font-weight:800;flex-shrink:0;margin-top:5px">${tierBadge}</span></div>
@@ -557,7 +557,7 @@ ${b.promo?`<div style="background:#fef9c3;border:1px solid #fde68a;border-radius
 <div class="irow"><span class="iico">📍</span><span class="ival">${b.aKo}</span></div>
 ${b.phone?`<div class="irow"><span class="iico">📞</span><a href="tel:${b.phone}" class="ival" style="color:var(--p);text-decoration:none">${b.phone}</a></div>`:''}
 <div class="irow"><span class="iico">⏰</span><span class="ival">${b.hrs} <span style="background:${b.open?'#dcfce7':'#fee2e2'};color:${b.open?'#15803d':'#dc2626'};border-radius:5px;padding:2px 8px;font-size:var(--f-xs);font-weight:700">${b.open?t('영업중','Open'):t('마감','Closed')}</span></span></div>
-${b.dKo?`<div class="irow"><span class="iico">📝</span><span class="ival t2">${b.dKo}</span></div>`:''}
+${b.dKo?`<div class="irow" style="align-items:flex-start"><span class="iico">📝</span><span class="ival t2" style="white-space:pre-wrap;line-height:1.7">${b.dKo}</span></div>`:''}
 <div class="divider"></div>
 <div class="act-row">
 <button class="act call" onclick="window.location.href='tel:${b.phone}'" ${!b.phone?'disabled':''}><span>📞</span>${t('전화','Call')}</button>
@@ -570,15 +570,17 @@ ${b.dKo?`<div class="irow"><span class="iico">📝</span><span class="ival t2">$
 function renderNotice(){
   if(S.selNotice){
     const n=S.selNotice;
-    return`<div class="hdr"><button class="hdr-back" onclick="S.selNotice=null;render()">←</button><span class="hdr-title">📢 ${t('공지사항','Notice')}</span></div>
+    return`<div class="hdr"><button class="hdr-back" onclick="history.back()">←</button><span class="hdr-title">📢 ${t('공지사항','Notice')}</span></div>
 <div style="padding:clamp(16px,4vw,26px)">${n.pinned?`<span class="notice-pin">📌 ${t('중요','Important')}</span>`:''}<div style="font-size:var(--f-lg);font-weight:800;line-height:1.4;margin-bottom:8px;font-family:'Jua',sans-serif">${S.lang==='ko'?n.titleKo:n.titleEn}</div><div style="font-size:var(--f-xs);color:var(--t2);margin-bottom:20px">${fmtDate(n.date)}</div><div style="font-size:var(--f-sm);line-height:1.9;white-space:pre-wrap">${S.lang==='ko'?n.bodyKo:n.bodyEn}</div></div>`;
   }
-  return`<div class="hdr"><button class="hdr-back" onclick="goHome()">←</button><span class="hdr-title">📢 ${t('공지사항','Notices')}</span></div>
-<div style="padding:clamp(12px,3vw,18px)">${S.notices.length===0?`<div class="empty"><div class="empty-ic">📭</div><p>${t('공지사항이 없습니다','No notices')}</p></div>`:S.notices.sort((a,b)=>b.pinned-a.pinned||new Date(b.date)-new Date(a.date)).map(n=>`<div class="notice-item${n.pinned?' pinned':''}" onclick="S.selNotice=S.notices.find(x=>x.id===${n.id});render()">${n.pinned?`<span class="notice-pin">📌 ${t('중요','Important')}</span>`:''}<div class="notice-title">${S.lang==='ko'?n.titleKo:n.titleEn}</div><div class="notice-date">${fmtDate(n.date)}</div><div class="notice-preview">${S.lang==='ko'?n.bodyKo:n.bodyEn}</div></div>`).join('')}</div>`;
+  return`<div class="hdr"><button class="hdr-back" onclick="history.back()">←</button><span class="hdr-title">📢 ${t('공지사항','Notices')}</span></div>
+<div style="padding:clamp(12px,3vw,18px)">${S.notices.length===0?`<div class="empty"><div class="empty-ic">📭</div><p>${t('공지사항이 없습니다','No notices')}</p></div>`:S.notices.sort((a,b)=>b.pinned-a.pinned||new Date(b.date)-new Date(a.date)).map(n=>`<div class="notice-item${n.pinned?' pinned':''}" onclick="openNotice(${n.id})">${n.pinned?`<span class="notice-pin">📌 ${t('중요','Important')}</span>`:''}<div class="notice-title">${S.lang==='ko'?n.titleKo:n.titleEn}</div><div class="notice-date">${fmtDate(n.date)}</div><div class="notice-preview">${S.lang==='ko'?n.bodyKo:n.bodyEn}</div></div>`).join('')}</div>`;
 }
+function openNotice(id){S.selNotice=S.notices.find(x=>x.id===id);history.pushState({screen:'notice',id:id},'');render();}
+function goBackNotice(){S.selNotice=null;render();}
 
 function renderInquiry(){
-  return`<div class="hdr"><button class="hdr-back" onclick="goHome()">←</button><span class="hdr-title">💬 ${t('문의하기','Inquiry')}</span></div>
+  return`<div class="hdr"><button class="hdr-back" onclick="history.back()">←</button><span class="hdr-title">💬 ${t('문의하기','Inquiry')}</span></div>
 <div style="padding:clamp(12px,3vw,18px)">
 
 <div class="card-box"><h3>✍️ ${t('문의 작성','Send Inquiry')}</h3>
@@ -1275,11 +1277,15 @@ function changePw(){const cur=document.getElementById('pw_cur')?.value,nw=docume
 function closeModal(){document.getElementById('modal-root').innerHTML='';}
 function setAdminTab(tab){S.adminTab=tab;render();}
 function toggleLang(){S.lang=S.lang==='ko'?'en':'ko';render();}
-function goHome(){S.screen='home';S.cat=null;S.subcat=null;S.q='';S.selNotice=null;render();}
-function goScreen(sc){S.prevScreen='home';S.screen=sc;render();}
-function goCat(id){S.cat=id;S.subcat=null;S.q='';S.screen='list';render();}
-function goDetail(id){S.prevScreen=S.screen;S.sel=S.bizs.find(b=>b.id===id);S.screen='detail';render();}
-function goBack(){S.screen=S.prevScreen||'home';render();}
+function goHome(){S.screen='home';S.cat=null;S.subcat=null;S.q='';S.sel=null;S.selNotice=null;render();}
+function goScreen(sc){S.prevScreen=S.screen;S.screen=sc;history.pushState({screen:sc},'');render();}
+function goCat(id){S.prevScreen=S.screen;S.cat=id;S.subcat=null;S.q='';S.screen='list';history.pushState({screen:'list',cat:id},'');render();}
+function goDetail(id){S.prevScreen=S.screen;S.sel=S.bizs.find(b=>b.id===id);S.screen='detail';history.pushState({screen:'detail',id:id},'');render();}
+function goBack(){if(S.screen==='detail'){S.screen=S.prevScreen||'list';S.sel=null;}else if(S.screen==='list'){S.screen='home';S.cat=null;}else{S.screen='home';}render();}
+function handlePopState(){if(S.screen==='detail'){S.screen=S.prevScreen||'list';S.sel=null;render();}else if(S.screen==='list'){S.screen='home';S.cat=null;S.subcat=null;render();}else if(S.screen==='notice'||S.screen==='inquiry'){if(S.selNotice){S.selNotice=null;render();}else{S.screen='home';render();}}else if(S.screen==='admin'){S.screen='home';render();}else{history.back();}}
+window.addEventListener('popstate',function(e){e.preventDefault();handlePopState();});
+// 초기 히스토리 상태 설정
+history.replaceState({screen:'home'},'');
 function setSub(s){S.subcat=s;render();}
 function setArea(id){S.area=id;const rr=document.getElementById('srch-results');if(!rr){render();return;}const areas=S.areas||DEFAULT_AREAS;document.querySelectorAll('.area-bar .a-btn').forEach(btn=>{const txt=t(areas.find(a=>a.id===id)?.ko||'',areas.find(a=>a.id===id)?.en||'');btn.classList.toggle('on',btn.textContent===txt||btn.getAttribute('onclick')===`setArea('${id}')`)});const byArea=b=>S.area==='all'||b.area===S.area;if(S.q){rr.innerHTML=`<div class="sec-ttl">${t('검색 결과','Results')} (${getFiltered().length})</div>${renderTiered(getFiltered())}`;}else{const cats=(S.cats||DEFAULT_CATS).slice().sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));rr.innerHTML=`<div class="sec-ttl">${t('카테고리별 보기','Browse by Category')}</div><div class="cat-grid">${cats.map(c=>{const n=S.bizs.filter(bb=>bb.cat===c.id&&byArea(bb)).length;return`<div class="cat-item" onclick="goCat('${c.id}')"><span class="cat-icon">${c.ic}</span><span class="cat-name">${t(c.ko,c.en)}</span><span class="cat-cnt">${n}${t('개','')}</span></div>`;}).join('')}</div>`;}render();}
 function setArea2(id){S.area=id;render();}
