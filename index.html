@@ -360,7 +360,13 @@ function getFiltered(){
 
 function toast(msg){const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2500);}
 function openKakao(k){if(!k)return;try{navigator.clipboard.writeText(k);}catch(e){}toast(t(`카카오 ID: ${k} (복사됨)`,`KakaoTalk: ${k} (copied)`));}
-function openMap(lat,lng){window.open(`https://maps.google.com/maps?q=${lat},${lng}&z=16`,'_blank');}
+function openMap(lat,lng,mapLink){
+  if(mapLink){
+    window.open(mapLink,'_blank');
+  } else {
+    window.open(`https://maps.google.com/maps?q=${lat},${lng}&z=16`,'_blank');
+  }
+}
 
 // 스와이프 갤러리
 let _galImgs=[], _galIdx=0;
@@ -460,7 +466,7 @@ function renderTiered(list){
     h+=`<div class="tier-sec"><div class="tier-hdr prem"><span style="font-size:var(--f-lg)">🥇</span><span class="tier-lbl prem">${t('프리미엄','Premium')}</span><span class="tier-desc">${t('최상위 노출','Top')}</span></div>`;
     prem.forEach(b=>{
       const ico=b.photo?`<img src="${b.photo}" alt="">`:ci(b.cat);
-      h+=`<div class="prem-banner" onclick="goDetail(${b.id})"><div style="background:${b.grad}"><div class="pb-badge">PREMIUM</div><div class="pb-top"><div class="pb-ico">${ico}</div><div style="flex:1;min-width:0"><div class="pb-nm">${nm(b)}</div><div class="pb-ad">📍 ${b.aKo} · ⏰ ${b.hrs}</div>${b.promo?`<span class="pb-promo">🎁 ${b.promo}</span>`:''}</div></div><div class="pb-btns"><button class="pb-btn call" onclick="event.stopPropagation();window.location.href='tel:${b.phone}'" ${!b.phone?'disabled':''}>📞 ${t('전화','Call')}</button><button class="pb-btn kko" onclick="event.stopPropagation();openKakao('${b.kakao}')" ${!b.kakao?'disabled':''}>💬 KakaoTalk</button><button class="pb-btn map" onclick="event.stopPropagation();openMap(${b.lat},${b.lng})">🗺️ Map</button></div></div></div>`;
+      h+=`<div class="prem-banner" onclick="goDetail(${b.id})"><div style="background:${b.grad}"><div class="pb-badge">PREMIUM</div><div class="pb-top"><div class="pb-ico">${ico}</div><div style="flex:1;min-width:0"><div class="pb-nm">${nm(b)}</div><div class="pb-ad">📍 ${b.aKo} · ⏰ ${b.hrs}</div>${b.promo?`<span class="pb-promo">🎁 ${b.promo}</span>`:''}</div></div><div class="pb-btns"><button class="pb-btn call" onclick="event.stopPropagation();window.location.href='tel:${b.phone}'" ${!b.phone?'disabled':''}>📞 ${t('전화','Call')}</button><button class="pb-btn kko" onclick="event.stopPropagation();openKakao('${b.kakao}')" ${!b.kakao?'disabled':''}>💬 KakaoTalk</button><button class="pb-btn map" onclick="event.stopPropagation();openMap(${b.lat},${b.lng},'${b.mapLink||''}')">🗺️ Map</button></div></div></div>`;
     });
     h+=`</div>`;
   }
@@ -528,7 +534,7 @@ ${b.dKo?`<div class="irow"><span class="iico">📝</span><span class="ival t2">$
 <div class="act-row">
 <button class="act call" onclick="window.location.href='tel:${b.phone}'" ${!b.phone?'disabled':''}><span>📞</span>${t('전화','Call')}</button>
 <button class="act kko" onclick="openKakao('${b.kakao}')" ${!b.kakao?'disabled':''}><span>💬</span>KakaoTalk</button>
-<button class="act map" onclick="openMap(${b.lat},${b.lng})"><span>🗺️</span>Map</button>
+<button class="act map" onclick="openMap(${b.lat},${b.lng},'${b.mapLink||''}')"><span>🗺️</span>Map</button>
 </div>${menuHtml}</div>`;
 }
 
@@ -667,7 +673,9 @@ function bizFormHTML(prefix, b){
 <div class="fg"><label class="fl">${t('주소','Address')}</label><input class="fi" id="${prefix}_aKo" value="${v('aKo')}"></div>
 <div class="frow"><div class="fg"><label class="fl">📍 ${t('위도','Lat')}</label><input class="fi" id="${prefix}_lat" type="number" step="0.0001" value="${b?.lat||''}" placeholder="15.1850"></div>
 <div class="fg"><label class="fl">📍 ${t('경도','Lng')}</label><input class="fi" id="${prefix}_lng" type="number" step="0.0001" value="${b?.lng||''}" placeholder="120.5450"></div></div>
-<div style="font-size:11px;color:var(--t2);margin-bottom:12px;padding:6px 10px;background:#f1f5f9;border-radius:6px">💡 <a href="https://www.google.com/maps" target="_blank" style="color:#0284c7">${t('Google Maps','Google Maps')}</a>${t('에서 업소 위치 우클릭 → 좌표 복사',' → Right-click location → Copy coordinates')}</div>
+<div style="font-size:11px;color:var(--t2);margin-bottom:8px;padding:6px 10px;background:#f1f5f9;border-radius:6px">💡 <a href="https://www.google.com/maps" target="_blank" style="color:#0284c7">${t('Google Maps','Google Maps')}</a>${t('에서 업소 위치 우클릭 → 좌표 복사',' → Right-click location → Copy coordinates')}</div>
+<div class="fg"><label class="fl">🔗 ${t('구글맵 링크 (선택)','Google Maps Link (Optional)')}</label><input class="fi" id="${prefix}_mapLink" value="${v('mapLink')}" placeholder="https://maps.app.goo.gl/..."></div>
+<div style="font-size:11px;color:var(--t2);margin-bottom:12px;padding:6px 10px;background:#e0f2fe;border-radius:6px">💡 ${t('이미 구글맵에 등록된 업소는 링크를 입력하면 해당 페이지로 바로 이동합니다.','If the business is already on Google Maps, entering the link will open that page directly.')}</div>
 <div class="frow"><div class="fg"><label class="fl">${t('전화번호','Phone')}</label><input class="fi" id="${prefix}_ph" type="tel" value="${v('phone')}" placeholder="0917-000-0000"></div>
 <div class="fg"><label class="fl">KakaoTalk ID</label><input class="fi" id="${prefix}_kk" value="${v('kakao')}"></div></div>
 <div class="frow"><div class="fg"><label class="fl">${t('영업시간','Hours')}</label><input class="fi" id="${prefix}_hrs" value="${v('hrs')}" placeholder="09:00-22:00"></div>
@@ -712,6 +720,7 @@ function bizToRow(b){
     grad: b.grad || '',
     lat: b.lat || 15.18,
     lng: b.lng || 120.54,
+    map_link: b.mapLink || '',
     open: b.open !== false
   };
 }
@@ -736,6 +745,7 @@ function rowToBiz(r){
     grad: r.grad || GR[Math.floor(Math.random()*GR.length)],
     lat: r.lat || 15.18,
     lng: r.lng || 120.54,
+    mapLink: r.map_link || '',
     open: r.open !== false
   };
 }
@@ -874,7 +884,7 @@ function submitBiz(){
   const btn = document.querySelector('.card-box .btn');
   if(btn) { btn.disabled = true; btn.textContent = t('등록 중...','Saving...'); }
   
-  const b={cat:g('f_cat')||'etc',subcat:g('f_subcat')||'',tier:g('f_tier')||'free',nKo,area:g('f_area')||'clark',phone:g('f_ph'),kakao:g('f_kk'),aKo:g('f_aKo'),dKo:g('f_dKo'),hrs:g('f_hrs')||'09:00-22:00',promo:g('f_promo'),adminMemo:g('f_memo'),tierExpiry:g('f_expiry'),photo:'',menuPhotos:[],grad:GR[Math.floor(Math.random()*GR.length)],lat:parseFloat(g('f_lat'))||15.18,lng:parseFloat(g('f_lng'))||120.54,open:document.getElementById('f_open')?.checked??true};
+  const b={cat:g('f_cat')||'etc',subcat:g('f_subcat')||'',tier:g('f_tier')||'free',nKo,area:g('f_area')||'clark',phone:g('f_ph'),kakao:g('f_kk'),aKo:g('f_aKo'),dKo:g('f_dKo'),hrs:g('f_hrs')||'09:00-22:00',promo:g('f_promo'),adminMemo:g('f_memo'),tierExpiry:g('f_expiry'),photo:'',menuPhotos:[],grad:GR[Math.floor(Math.random()*GR.length)],lat:parseFloat(g('f_lat'))||15.18,lng:parseFloat(g('f_lng'))||120.54,mapLink:g('f_mapLink'),open:document.getElementById('f_open')?.checked??true};
   
   S.bizs.push(b);
   saveBiz(b).then((result)=>{
@@ -891,7 +901,7 @@ function saveEditBiz(id){
   const g=id2=>document.getElementById(id2)?.value?.trim()||'';
   const nKo=g('e_nKo');if(!nKo){toast(t('업체명을 입력하세요','Enter name'));return;}
   const idx=S.bizs.findIndex(b=>b.id===id);if(idx<0)return;
-  S.bizs[idx]={...S.bizs[idx],nKo,cat:g('e_cat'),subcat:g('e_subcat'),tier:g('e_tier'),area:g('e_area'),phone:g('e_ph'),kakao:g('e_kk'),aKo:g('e_aKo'),dKo:g('e_dKo'),hrs:g('e_hrs'),promo:g('e_promo'),adminMemo:g('e_memo'),tierExpiry:g('e_expiry'),lat:parseFloat(g('e_lat'))||S.bizs[idx].lat,lng:parseFloat(g('e_lng'))||S.bizs[idx].lng,open:document.getElementById('e_open')?.checked??true};
+  S.bizs[idx]={...S.bizs[idx],nKo,cat:g('e_cat'),subcat:g('e_subcat'),tier:g('e_tier'),area:g('e_area'),phone:g('e_ph'),kakao:g('e_kk'),aKo:g('e_aKo'),dKo:g('e_dKo'),hrs:g('e_hrs'),promo:g('e_promo'),adminMemo:g('e_memo'),tierExpiry:g('e_expiry'),lat:parseFloat(g('e_lat'))||S.bizs[idx].lat,lng:parseFloat(g('e_lng'))||S.bizs[idx].lng,mapLink:g('e_mapLink'),open:document.getElementById('e_open')?.checked??true};
   supa.update('businesses',id,bizToRow(S.bizs[idx]));
   closeModal();render();toast(t('✅ 수정됐습니다','✅ Saved'));
 }
