@@ -372,7 +372,7 @@ const S={
   notices:[...DEFAULT_NOTICES],inquiries:[],
   sel:null,selNotice:null,
   admin:false,adminTab:'biz',prevScreen:'home',
-  newCatEmoji:'📌',adminPw:'admin1234'
+  newCatEmoji:'📌',adminPw:'admin1234',adminCatFilter:null
 };
 
 // ══ 헬퍼 ══════════════════════════════════════════════════════
@@ -493,11 +493,22 @@ function expiryBadge(b){
 }
 
 // ══ 티어 목록 렌더 ════════════════════════════════════════════
+// 배열 랜덤 셔플 함수
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
 function renderTiered(list){
   if(!list||!list.length)return`<div class="empty"><div class="empty-ic">🔍</div><p>${t('업체가 없습니다','No results')}</p></div>`;
-  const prem=list.filter(b=>b.tier==='premium');
-  const std=list.filter(b=>b.tier==='standard');
-  const free=list.filter(b=>b.tier==='free');
+  // 각 등급별로 랜덤 셔플
+  const prem=shuffle(list.filter(b=>b.tier==='premium'));
+  const std=shuffle(list.filter(b=>b.tier==='standard'));
+  const free=shuffle(list.filter(b=>b.tier==='free'));
   let h='';
   if(prem.length){
     h+=`<div class="tier-sec"><div class="tier-hdr prem"><span style="font-size:var(--f-lg)">🥇</span><span class="tier-lbl prem">${t('프리미엄','Premium')}</span><span class="tier-desc">${t('최상위 노출','Top')}</span></div>`;
@@ -687,11 +698,18 @@ function renderAdmin(){
 }
 
 function renderAdminBiz(){
+  const cats=(S.cats||DEFAULT_CATS).slice().sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));
+  const filtered=S.adminCatFilter?S.bizs.filter(b=>b.cat===S.adminCatFilter):S.bizs;
   return`<div class="card-box"><h3>➕ ${t('새 업체 등록','Add Business')}</h3>${bizFormHTML('f',null)}<button class="btn" onclick="submitBiz()" style="margin-top:6px">${t('등록하기','Add')}</button></div>
 <div class="card-box"><h3>${t('업체 목록','List')} (${S.bizs.length})<span style="font-size:var(--f-xs);color:var(--t2);font-weight:400">🥇${S.bizs.filter(b=>b.tier==='premium').length} ⭐${S.bizs.filter(b=>b.tier==='standard').length} 📋${S.bizs.filter(b=>b.tier==='free').length}</span></h3>
-${S.bizs.map(b=>`<div class="biz-row-adm"><span style="flex-shrink:0">${ci(b.cat)}</span><span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;font-size:var(--f-sm)">${nm(b)}${b.subcat?` <span style="color:var(--t2)">(${b.subcat})</span>`:''}</span><span style="color:var(--t2);font-size:var(--f-xs);flex-shrink:0">${an(b.area)}</span>${expiryBadge(b)}<button class="ab photo" onclick="openPhotoModal(${b.id})">🖼️</button><button class="ab edit" onclick="openEditBiz(${b.id})">✏️</button><button class="ab del" onclick="delBiz(${b.id})">${t('삭제','Del')}</button></div>`).join('')}
+<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">
+<button class="s-btn${!S.adminCatFilter?' on':''}" onclick="setAdminCatFilter(null)">${t('전체','All')} (${S.bizs.length})</button>
+${cats.map(c=>{const cnt=S.bizs.filter(b=>b.cat===c.id).length;return cnt?`<button class="s-btn${S.adminCatFilter===c.id?' on':''}" onclick="setAdminCatFilter('${c.id}')">${c.ic} ${t(c.ko,c.en)} (${cnt})</button>`:''}).join('')}
+</div>
+${filtered.length?filtered.map(b=>`<div class="biz-row-adm"><span style="flex-shrink:0">${ci(b.cat)}</span><span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;font-size:var(--f-sm)">${nm(b)}${b.subcat?` <span style="color:var(--t2)">(${b.subcat})</span>`:''}</span><span style="color:var(--t2);font-size:var(--f-xs);flex-shrink:0">${an(b.area)}</span>${expiryBadge(b)}<button class="ab photo" onclick="openPhotoModal(${b.id})">🖼️</button><button class="ab edit" onclick="openEditBiz(${b.id})">✏️</button><button class="ab del" onclick="delBiz(${b.id})">${t('삭제','Del')}</button></div>`).join(''):`<div style="text-align:center;color:var(--t2);padding:20px">${t('해당 카테고리에 업체가 없습니다','No businesses in this category')}</div>`}
 </div>`;
 }
+function setAdminCatFilter(cat){S.adminCatFilter=cat;render();}
 
 function bizFormHTML(prefix, b){
   const v=f=>b?b[f]||'':'';
