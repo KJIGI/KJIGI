@@ -966,9 +966,18 @@ function delBiz(id){confirmModal(t('이 업체를 삭제할까요?','Delete this
 
 // ── 사진 관리 ──
 let _tmpMenuPhotos=[];
-function openPhotoModal(id){
+async function openPhotoModal(id){
   const b=S.bizs.find(x=>x.id===id);if(!b)return;
-  _tmpMenuPhotos=[...(b.menuPhotos||[])];
+  
+  // 로딩 표시
+  document.getElementById('modal-root').innerHTML=`<div class="modal-bg"><div class="modal" style="text-align:center;padding:40px"><div style="font-size:32px;margin-bottom:12px">⏳</div><p>${t('사진 불러오는 중...','Loading photos...')}</p></div></div>`;
+  
+  // menu_photos 동적 로드
+  const fresh = await supa.getOne('businesses', id, 'menu_photos');
+  const menuPhotos = fresh?.menu_photos || b.menuPhotos || [];
+  b.menuPhotos = menuPhotos; // 캐시
+  _tmpMenuPhotos=[...menuPhotos];
+  
   document.getElementById('modal-root').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal">
 <h3>🖼️ ${t('사진 관리','Photo Manager')} — ${nm(b)}</h3>
 <div style="font-size:var(--f-sm);font-weight:700;margin-bottom:8px">📸 ${t('대표 사진','Main Photo')}</div>
@@ -1317,7 +1326,23 @@ function toggleLang(){S.lang=S.lang==='ko'?'en':'ko';render();}
 function goHome(){S.screen='home';S.cat=null;S.subcat=null;S.q='';S.sel=null;S.selNotice=null;render();}
 function goScreen(sc){S.prevScreen=S.screen;S.screen=sc;history.pushState({screen:sc},'');render();}
 function goCat(id){S.prevScreen=S.screen;S.cat=id;S.subcat=null;S.q='';S.screen='list';history.pushState({screen:'list',cat:id},'');render();}
-function goDetail(id){S.prevScreen=S.screen;S.sel=S.bizs.find(b=>b.id===id);S.screen='detail';history.pushState({screen:'detail',id:id},'');render();}
+async function goDetail(id){
+  S.prevScreen=S.screen;
+  S.sel=S.bizs.find(b=>b.id===id);
+  S.screen='detail';
+  history.pushState({screen:'detail',id:id},'');
+  render();
+  // menu_photos 동적 로드 (백그라운드)
+  if(S.sel && (!S.sel.menuPhotos || S.sel.menuPhotos.length===0)){
+    const fresh = await supa.getOne('businesses', id, 'menu_photos');
+    if(fresh?.menu_photos?.length){
+      S.sel.menuPhotos = fresh.menu_photos;
+      const idx = S.bizs.findIndex(b=>b.id===id);
+      if(idx>-1) S.bizs[idx].menuPhotos = fresh.menu_photos;
+      render();
+    }
+  }
+}
 function goBack(){if(S.screen==='detail'){S.screen=S.prevScreen||'list';S.sel=null;}else if(S.screen==='list'){S.screen='home';S.cat=null;}else{S.screen='home';}render();}
 function handlePopState(){if(S.screen==='detail'){S.screen=S.prevScreen||'list';S.sel=null;render();}else if(S.screen==='list'){S.screen='home';S.cat=null;S.subcat=null;render();}else if(S.screen==='notice'||S.screen==='inquiry'){if(S.selNotice){S.selNotice=null;render();}else{S.screen='home';render();}}else if(S.screen==='admin'){S.screen='home';render();}else{history.back();}}
 window.addEventListener('popstate',function(e){e.preventDefault();handlePopState();});
@@ -1349,15 +1374,14 @@ const SUPA_URL = 'https://aeklwexspqbgaedicyba.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFla2x3ZXhzcHFiZ2FlZGljeWJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNzQxNzgsImV4cCI6MjA4OTk1MDE3OH0.9LOh2rUIegdCDERaSQkh7htklbYbfAi_smmnwZMiC90';
 
 const supa = {
-  async get(table) {
+  async get(table, columns='*') {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
+    const timeout = setTimeout(() => controller.abort(), 15000); // 15초 타임아웃
     try {
-      const r = await fetch(`${SUPA_URL}/rest/v1/${table}?select=*&order=id`, {
+      const r = await fetch(`${SUPA_URL}/rest/v1/${table}?select=${columns}&order=id`, {
         headers: {
           'apikey': SUPA_KEY, 
-          'Authorization': 'Bearer ' + SUPA_KEY,
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
+          'Authorization': 'Bearer ' + SUPA_KEY
         },
         signal: controller.signal
       });
@@ -1368,6 +1392,15 @@ const supa = {
       console.error('❌ 로드 실패:', table, e.message);
       return [];
     }
+  },
+  async getOne(table, id, columns='*') {
+    try {
+      const r = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${id}&select=${columns}`, {
+        headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
+      });
+      const arr = r.ok ? await r.json() : [];
+      return arr[0] || null;
+    } catch(e) { return null; }
   },
   // RPC 호출 (보안 함수용)
   async rpc(fn, params) {
@@ -1466,10 +1499,11 @@ async function loadAll(){
       <p style="color:var(--t2);font-size:14px">로딩 중...</p>
     </div>`;
   
-  // 모든 테이블 병렬로 로드
+  // 모든 테이블 병렬로 로드 (businesses는 menu_photos 제외 - 너무 무거움)
+  const bizColumns = 'id,cat,subcat,tier,n_ko,area,phone,kakao,a_ko,d_ko,hrs,open,promo,photo,admin_memo,tier_expiry,grad,lat,lng,map_link,created_at';
   const [catRows, bizRows, noticeRows, areaRows, inqRows] = await Promise.all([
     supa.get('categories').catch(e => { console.warn('⚠️ 카테고리 로드 실패:', e); return []; }),
-    supa.get('businesses').catch(e => { console.warn('⚠️ 업체 로드 실패:', e); return []; }),
+    supa.get('businesses', bizColumns).catch(e => { console.warn('⚠️ 업체 로드 실패:', e); return []; }),
     supa.get('notices').catch(e => { console.warn('⚠️ 공지 로드 실패:', e); return []; }),
     supa.get('areas').catch(e => { console.warn('⚠️ 지역 로드 실패:', e); return []; }),
     supa.get('inquiries').catch(e => { console.warn('⚠️ 문의 로드 실패:', e); return []; })
