@@ -1034,20 +1034,30 @@ async function onMainPhotoFile(input,id){
 function previewMainUrl(url){const box=document.getElementById('mainPhotoBox');if(box)box.innerHTML=url?`<img src="${url}" style="width:100%;height:100%;object-fit:cover">`:`<span style="font-size:50px">📷</span>`;}
 async function onMenuPhotoFile(input,id){
   const files=Array.from(input.files);
+  console.log('📸 onMenuPhotoFile 시작, 파일 수:', files.length, 'id:', id);
   toast(t('⏳ 업로드 중...','⏳ Uploading...'));
   let success=0;
   for(const f of files){
     const url = await uploadToImgBB(f);
+    console.log('📸 업로드 결과:', url);
     if(url){
       _tmpMenuPhotos.push(url);
+      console.log('📸 _tmpMenuPhotos에 추가됨, 현재:', _tmpMenuPhotos.length);
       success++;
     }
   }
+  console.log('📸 refreshMenuGrid 호출 전, id:', id);
   refreshMenuGrid(id);
   toast(t(`✅ ${success}장 업로드 완료`,`✅ ${success} uploaded`));
 }
 function removeMenuPhoto(i,id){_tmpMenuPhotos.splice(i,1);refreshMenuGrid(id);}
-function refreshMenuGrid(id){const grid=document.getElementById('menuImgGrid');if(!grid)return;grid.innerHTML=_tmpMenuPhotos.map((src,i)=>`<div class="img-prev-item"><img src="${src}"><button class="rm-btn" onclick="removeMenuPhoto(${i},${id})">✕</button></div>`).join('')+`<label class="add-img-btn"><span>➕</span><span>${t('추가','Add')}</span><input type="file" accept="image/*" multiple style="display:none" onchange="onMenuPhotoFile(this,${id})"></label>`;}
+function refreshMenuGrid(id){
+  console.log('🔄 refreshMenuGrid 호출, _tmpMenuPhotos:', _tmpMenuPhotos);
+  const grid=document.getElementById('menuImgGrid');
+  if(!grid){console.log('❌ menuImgGrid 없음');return;}
+  grid.innerHTML=_tmpMenuPhotos.map((src,i)=>`<div class="img-prev-item"><img src="${src}"><button class="rm-btn" onclick="removeMenuPhoto(${i},${id})">✕</button></div>`).join('')+`<label class="add-img-btn"><span>➕</span><span>${t('추가','Add')}</span><input type="file" accept="image/*" multiple style="display:none" onchange="onMenuPhotoFile(this,${id})"></label>`;
+  console.log('✅ 그리드 업데이트 완료');
+}
 async function savePhotos(id){
   const mainUrl=document.getElementById('mainPhotoUrl')?.value?.trim()||'';
   const idx=S.bizs.findIndex(b=>b.id===id);if(idx<0)return;
