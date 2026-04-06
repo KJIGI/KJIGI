@@ -877,64 +877,35 @@ function rowToInq(r){
 
 async function saveBiz(b){
   try {
-    const result = await supa.rpc('admin_insert_business', {
-      admin_pw: S.adminPw,
-      p_cat: b.cat || 'etc',
-      p_subcat: b.subcat || '',
-      p_tier: b.tier || 'free',
-      p_n_ko: b.nKo,
-      p_area: b.area || 'clark',
-      p_phone: b.phone || '',
-      p_kakao: b.kakao || '',
-      p_a_ko: b.aKo || '',
-      p_d_ko: b.dKo || '',
-      p_hrs: b.hrs || '09:00-22:00',
-      p_open: b.open ?? true,
-      p_promo: b.promo || '',
-      p_photo: b.photo || '',
-      p_menu_photos: b.menuPhotos || [],
-      p_admin_memo: b.adminMemo || '',
-      p_tier_expiry: b.tierExpiry || '',
-      p_grad: b.grad || GR[0],
-      p_lat: b.lat || 15.18,
-      p_lng: b.lng || 120.54,
-      p_map_link: b.mapLink || ''
-    });
-    if(result && result.id) {
+    const row = bizToRow(b);
+    const result = await supa.insert('businesses', row);
+    if(result && result[0]) {
       const idx = S.bizs.findIndex(x => x.nKo === b.nKo && !x.id);
-      if(idx >= 0) S.bizs[idx].id = result.id;
-      else b.id = result.id;
-      console.log('✅ 업체 저장:', result.id);
-      return result;
+      if(idx >= 0) S.bizs[idx].id = result[0].id;
+      else b.id = result[0].id;
+      console.log('✅ 업체 저장:', result[0].id);
+      return result[0];
     }
     return null;
-  } catch(e) { console.error('❌ 업체 저장 실패:', e); toast(t('⚠️ 권한 없음','⚠️ Unauthorized')); return null; }
+  } catch(e) { console.error('❌ 업체 저장 실패:', e); return null; }
 }
 
 async function saveNotice(n){
   try {
-    const result = await supa.rpc('admin_insert_notice', {
-      admin_pw: S.adminPw,
-      p_pinned: n.pinned || false,
-      p_title_ko: n.titleKo,
-      p_title_en: n.titleEn || '',
-      p_body_ko: n.bodyKo,
-      p_body_en: n.bodyEn || '',
-      p_notice_date: n.date || new Date().toISOString().split('T')[0]
-    });
-    if(result && result.id) {
-      n.id = result.id;
-      console.log('✅ 공지 저장:', result.id);
-      return result;
+    const row = noticeToRow(n);
+    const result = await supa.insert('notices', row);
+    if(result && result[0]) {
+      n.id = result[0].id;
+      console.log('✅ 공지 저장:', result[0].id);
+      return result[0];
     }
     return null;
-  } catch(e) { console.error('❌ 공지 저장 실패:', e); toast(t('⚠️ 권한 없음','⚠️ Unauthorized')); return null; }
+  } catch(e) { console.error('❌ 공지 저장 실패:', e); return null; }
 }
 
 async function saveArea(a){
   try {
     const row = areaToRow(a);
-    // areas 테이블은 id가 text 타입이므로 upsert 사용
     const result = await supa.upsert('areas', row, 'id');
     console.log('✅ 지역 저장:', a.id);
     return result;
@@ -943,16 +914,12 @@ async function saveArea(a){
 
 async function saveInquiry(i){
   try {
-    const result = await supa.rpc('public_submit_inquiry', {
-      p_name: i.name,
-      p_contact: i.contact || '',
-      p_msg: i.msg,
-      p_pw: i.pw || ''
-    });
-    if(result && result.id) {
-      i.id = result.id;
-      console.log('✅ 문의 저장:', result.id);
-      return result;
+    const row = inqToRow(i);
+    const result = await supa.insert('inquiries', row);
+    if(result && result[0]) {
+      i.id = result[0].id;
+      console.log('✅ 문의 저장:', result[0].id);
+      return result[0];
     }
     return null;
   } catch(e) { console.error('❌ 문의 저장 실패:', e); return null; }
@@ -991,50 +958,11 @@ async function saveEditBiz(id){
   const nKo=g('e_nKo');if(!nKo){toast(t('업체명을 입력하세요','Enter name'));return;}
   const idx=S.bizs.findIndex(b=>b.id===id);if(idx<0)return;
   
-  try {
-    await supa.rpc('admin_update_business', {
-      admin_pw: S.adminPw,
-      p_id: id,
-      p_cat: g('e_cat') || 'etc',
-      p_subcat: g('e_subcat') || '',
-      p_tier: g('e_tier') || 'free',
-      p_n_ko: nKo,
-      p_area: g('e_area') || 'clark',
-      p_phone: g('e_ph') || '',
-      p_kakao: g('e_kk') || '',
-      p_a_ko: g('e_aKo') || '',
-      p_d_ko: g('e_dKo') || '',
-      p_hrs: g('e_hrs') || '09:00-22:00',
-      p_open: document.getElementById('e_open')?.checked ?? true,
-      p_promo: g('e_promo') || '',
-      p_photo: S.bizs[idx].photo || '',
-      p_menu_photos: S.bizs[idx].menuPhotos || [],
-      p_admin_memo: g('e_memo') || '',
-      p_tier_expiry: g('e_expiry') || '',
-      p_lat: parseFloat(g('e_lat')) || S.bizs[idx].lat,
-      p_lng: parseFloat(g('e_lng')) || S.bizs[idx].lng,
-      p_map_link: g('e_mapLink') || ''
-    });
-    S.bizs[idx]={...S.bizs[idx],nKo,cat:g('e_cat'),subcat:g('e_subcat'),tier:g('e_tier'),area:g('e_area'),phone:g('e_ph'),kakao:g('e_kk'),aKo:g('e_aKo'),dKo:g('e_dKo'),hrs:g('e_hrs'),promo:g('e_promo'),adminMemo:g('e_memo'),tierExpiry:g('e_expiry'),lat:parseFloat(g('e_lat'))||S.bizs[idx].lat,lng:parseFloat(g('e_lng'))||S.bizs[idx].lng,mapLink:g('e_mapLink'),open:document.getElementById('e_open')?.checked??true};
-    closeModal();render();toast(t('✅ 수정됐습니다','✅ Saved'));
-  } catch(e) {
-    console.error('수정 실패:', e);
-    toast(t('⚠️ 권한 없음','⚠️ Unauthorized'));
-  }
+  S.bizs[idx]={...S.bizs[idx],nKo,cat:g('e_cat'),subcat:g('e_subcat'),tier:g('e_tier'),area:g('e_area'),phone:g('e_ph'),kakao:g('e_kk'),aKo:g('e_aKo'),dKo:g('e_dKo'),hrs:g('e_hrs'),promo:g('e_promo'),adminMemo:g('e_memo'),tierExpiry:g('e_expiry'),lat:parseFloat(g('e_lat'))||S.bizs[idx].lat,lng:parseFloat(g('e_lng'))||S.bizs[idx].lng,mapLink:g('e_mapLink'),open:document.getElementById('e_open')?.checked??true};
+  supa.update('businesses',id,bizToRow(S.bizs[idx]));
+  closeModal();render();toast(t('✅ 수정됐습니다','✅ Saved'));
 }
-async function delBiz(id){
-  confirmModal(t('이 업체를 삭제할까요?','Delete this business?'), async function(){
-    try {
-      await supa.rpc('admin_delete_business', { admin_pw: S.adminPw, p_id: id });
-      S.bizs=S.bizs.filter(b=>b.id!==id);
-      render();
-      toast(t('✅ 삭제됐습니다','✅ Deleted'));
-    } catch(e) {
-      console.error('삭제 실패:', e);
-      toast(t('⚠️ 권한 없음','⚠️ Unauthorized'));
-    }
-  });
-}
+function delBiz(id){confirmModal(t('이 업체를 삭제할까요?','Delete this business?'),function(){S.bizs=S.bizs.filter(b=>b.id!==id);supa.delete('businesses',id);render();});}
 
 // ── 사진 관리 ──
 let _tmpMenuPhotos=[];
@@ -1061,36 +989,13 @@ async function savePhotos(id){
   const idx=S.bizs.findIndex(b=>b.id===id);if(idx<0)return;
   
   try {
-    const b = S.bizs[idx];
-    await supa.rpc('admin_update_business', {
-      admin_pw: S.adminPw,
-      p_id: id,
-      p_cat: b.cat,
-      p_subcat: b.subcat || '',
-      p_tier: b.tier,
-      p_n_ko: b.nKo,
-      p_area: b.area,
-      p_phone: b.phone || '',
-      p_kakao: b.kakao || '',
-      p_a_ko: b.aKo || '',
-      p_d_ko: b.dKo || '',
-      p_hrs: b.hrs || '',
-      p_open: b.open ?? true,
-      p_promo: b.promo || '',
-      p_photo: mainUrl,
-      p_menu_photos: _tmpMenuPhotos,
-      p_admin_memo: b.adminMemo || '',
-      p_tier_expiry: b.tierExpiry || '',
-      p_lat: b.lat,
-      p_lng: b.lng,
-      p_map_link: b.mapLink || ''
-    });
+    await supa.update('businesses', id, {photo: mainUrl, menu_photos: _tmpMenuPhotos});
     S.bizs[idx].photo=mainUrl;
     S.bizs[idx].menuPhotos=[..._tmpMenuPhotos];
     closeModal();render();toast(t('✅ 사진 저장됨','✅ Saved'));
   } catch(e) {
     console.error('사진 저장 실패:', e);
-    toast(t('⚠️ 권한 없음','⚠️ Unauthorized'));
+    toast(t('⚠️ 저장 실패','⚠️ Failed'));
   }
 }
 
@@ -1131,39 +1036,14 @@ function openEditNotice(id){
 <div class="modal-btns"><button class="btn sec" onclick="closeModal()">${t('취소','Cancel')}</button><button class="btn" onclick="saveEditNotice(${id})">${t('저장','Save')}</button></div>
 </div></div>`;
 }
-async function saveEditNotice(id){
+function saveEditNotice(id){
   const idx=S.notices.findIndex(x=>x.id===id);if(idx<0)return;
   const newDate = document.getElementById('en_date')?.value || S.notices[idx].date;
-  try {
-    await supa.rpc('admin_update_notice', {
-      admin_pw: S.adminPw,
-      p_id: id,
-      p_pinned: document.getElementById('en_pin')?.checked || false,
-      p_title_ko: document.getElementById('en_tko')?.value?.trim() || S.notices[idx].titleKo,
-      p_title_en: document.getElementById('en_ten')?.value?.trim() || S.notices[idx].titleEn,
-      p_body_ko: document.getElementById('en_bko')?.value?.trim() || S.notices[idx].bodyKo,
-      p_body_en: document.getElementById('en_ben')?.value?.trim() || S.notices[idx].bodyEn,
-      p_notice_date: newDate
-    });
-    S.notices[idx]={...S.notices[idx],titleKo:document.getElementById('en_tko')?.value?.trim()||S.notices[idx].titleKo,titleEn:document.getElementById('en_ten')?.value?.trim()||S.notices[idx].titleEn,bodyKo:document.getElementById('en_bko')?.value?.trim()||S.notices[idx].bodyKo,bodyEn:document.getElementById('en_ben')?.value?.trim()||S.notices[idx].bodyEn,pinned:document.getElementById('en_pin')?.checked||false,date:newDate};
-    closeModal();render();toast(t('✅ 수정됨','✅ Updated'));
-  } catch(e) {
-    console.error('공지 수정 실패:', e);
-    toast(t('⚠️ 권한 없음','⚠️ Unauthorized'));
-  }
+  S.notices[idx]={...S.notices[idx],titleKo:document.getElementById('en_tko')?.value?.trim()||S.notices[idx].titleKo,titleEn:document.getElementById('en_ten')?.value?.trim()||S.notices[idx].titleEn,bodyKo:document.getElementById('en_bko')?.value?.trim()||S.notices[idx].bodyKo,bodyEn:document.getElementById('en_ben')?.value?.trim()||S.notices[idx].bodyEn,pinned:document.getElementById('en_pin')?.checked||false,date:newDate};
+  supa.update('notices',id,noticeToRow(S.notices[idx]));
+  closeModal();render();toast(t('✅ 수정됨','✅ Updated'));
 }
-async function deleteNotice(id){
-  confirmModal(t('이 공지를 삭제할까요?','Delete this notice?'), async function(){
-    try {
-      await supa.rpc('admin_delete_notice', { admin_pw: S.adminPw, p_id: id });
-      S.notices=S.notices.filter(n=>n.id!==id);
-      render();toast(t('삭제됨','Deleted'));
-    } catch(e) {
-      console.error('공지 삭제 실패:', e);
-      toast(t('⚠️ 권한 없음','⚠️ Unauthorized'));
-    }
-  });
-}
+function deleteNotice(id){confirmModal(t('이 공지를 삭제할까요?','Delete this notice?'),function(){S.notices=S.notices.filter(n=>n.id!==id);supa.delete('notices',id);render();toast(t('삭제됨','Deleted'));});}
 
 // ── 문의 관리 ──
 function renderAdminInq(){
@@ -1179,18 +1059,13 @@ function openReplyModal(id){
   const inq=S.inquiries.find(x=>x.id===id);if(!inq)return;
   document.getElementById('modal-root').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal"><h3>💬 ${t('문의 답변','Reply')}</h3><div style="background:var(--bg);border-radius:9px;padding:12px;font-size:var(--f-sm);margin-bottom:14px;line-height:1.6"><strong>${inq.name}</strong>: ${inq.msg}</div><div class="fg"><label class="fl">${t('답변 내용','Reply')}</label><textarea class="fi" id="reply_body" rows="5">${inq.reply||''}</textarea></div><div class="modal-btns"><button class="btn sec" onclick="closeModal()">${t('취소','Cancel')}</button><button class="btn" onclick="saveReply(${id})">${t('답변 저장','Save')}</button></div></div></div>`;
 }
-async function saveReply(id){
+function saveReply(id){
   const reply=document.getElementById('reply_body')?.value?.trim();
   if(!reply){toast(t('답변을 입력하세요','Enter reply'));return;}
-  try {
-    await supa.rpc('admin_reply_inquiry', { admin_pw: S.adminPw, p_id: id, p_reply: reply });
-    const idx=S.inquiries.findIndex(x=>x.id===id);
-    if(idx>-1)S.inquiries[idx].reply=reply;
-    closeModal();render();toast(t('✅ 답변 저장됨','✅ Saved'));
-  } catch(e) {
-    console.error('답변 저장 실패:', e);
-    toast(t('⚠️ 권한 없음','⚠️ Unauthorized'));
-  }
+  const idx=S.inquiries.findIndex(x=>x.id===id);
+  if(idx>-1)S.inquiries[idx].reply=reply;
+  supa.update('inquiries',id,{reply,is_new:false});
+  closeModal();render();toast(t('✅ 답변 저장됨','✅ Saved'));
 }
 
 // ── 지역 관리 ──
@@ -1365,24 +1240,19 @@ async function submitCat(){
   if(!ko||!en){toast(t('이름을 모두 입력하세요','Enter both names'));return;}
   
   const newCat = {id:'cat_'+Date.now(),ic,ko,en,sortOrder:S.cats.length+1,subcats:[]};
+  S.cats.push(newCat);
   
-  try {
-    await supa.rpc('admin_insert_category', {
-      admin_pw: S.adminPw,
-      p_id: newCat.id,
-      p_ic: newCat.ic,
-      p_ko: newCat.ko,
-      p_en: newCat.en,
-      p_sort_order: newCat.sortOrder,
-      p_subcats: []
-    });
-    S.cats.push(newCat);
-    render();
-    toast(t('✅ 추가됨','✅ Added'));
-  } catch(e) {
-    console.error('카테고리 추가 실패:', e);
-    toast(t('⚠️ 권한 없음','⚠️ Unauthorized'));
-  }
+  await supa.insert('categories', {
+    id: newCat.id,
+    ic: newCat.ic,
+    ko: newCat.ko,
+    en: newCat.en,
+    sort_order: newCat.sortOrder,
+    subcats: []
+  });
+  
+  render();
+  toast(t('✅ 추가됨','✅ Added'));
 }
 
 function openEditCat(id){
@@ -1404,38 +1274,19 @@ async function saveEditCat(id){
   
   const idx=S.cats.findIndex(c=>c.id===id);
   if(idx>-1){
-    const c=S.cats[idx];
-    try {
-      await supa.rpc('admin_update_category', {
-        admin_pw: S.adminPw,
-        p_id: id,
-        p_ic: ic,
-        p_ko: ko,
-        p_en: en,
-        p_sort_order: c.sortOrder || idx + 1,
-        p_subcats: c.subcats || []
-      });
-      S.cats[idx]={...S.cats[idx],ic,ko,en};
-      closeModal();render();toast(t('✅ 수정됨','✅ Updated'));
-    } catch(e) {
-      console.error('카테고리 수정 실패:', e);
-      toast(t('⚠️ 권한 없음','⚠️ Unauthorized'));
-    }
+    S.cats[idx]={...S.cats[idx],ic,ko,en};
+    await supa.update('categories', id, {ic, ko, en});
+    closeModal();render();toast(t('✅ 수정됨','✅ Updated'));
   }
 }
 
 async function deleteCat(id){
   const cnt=S.bizs.filter(b=>b.cat===id).length;
   confirmModal(cnt>0?t('업체 '+cnt+'개 포함. 삭제할까요?',cnt+' businesses. Delete?'):t('삭제할까요?','Delete?'),async function(){
-    try {
-      await supa.rpc('admin_delete_category', { admin_pw: S.adminPw, p_id: id });
-      S.cats=S.cats.filter(c=>c.id!==id);
-      delete SUBCATS[id];
-      render();toast(t('삭제됨','Deleted'));
-    } catch(e) {
-      console.error('카테고리 삭제 실패:', e);
-      toast(t('⚠️ 권한 없음','⚠️ Unauthorized'));
-    }
+    S.cats=S.cats.filter(c=>c.id!==id);
+    delete SUBCATS[id];
+    await supa.deleteWhere('categories','id',id);
+    render();toast(t('삭제됨','Deleted'));
   });
 }
 
@@ -1447,20 +1298,16 @@ function renderAdminPw(){
 <div class="fg"><label class="fl">${t('확인','Confirm')}</label><input class="fi" id="pw_con" type="password" placeholder="••••••"></div>
 <button class="btn" onclick="changePw()">${t('변경하기','Change')}</button></div>`;
 }
-async function changePw(){
+function changePw(){
   const cur=document.getElementById('pw_cur')?.value;
   const nw=document.getElementById('pw_new')?.value;
   const co=document.getElementById('pw_con')?.value;
+  if(cur!==S.adminPw){toast(t('현재 비밀번호 오류','Wrong password'));return;}
   if(!nw||nw.length<4){toast(t('4자 이상 입력하세요','4+ chars'));return;}
   if(nw!==co){toast(t('비밀번호 불일치','Mismatch'));return;}
-  try {
-    await supa.rpc('admin_change_password', { old_pw: cur, new_pw: nw });
-    S.adminPw=nw;
-    toast(t('✅ 변경됨','✅ Changed'));
-  } catch(e) {
-    console.error('비밀번호 변경 실패:', e);
-    toast(t('현재 비밀번호 오류','Wrong password'));
-  }
+  S.adminPw=nw;
+  localStorage.setItem('kjigi_admin_pw', nw);
+  toast(t('✅ 변경됨','✅ Changed'));
 }
 
 // ══ 모달/네비 ══════════════════════════════════════════════════
@@ -1481,20 +1328,15 @@ function setArea(id){S.area=id;const rr=document.getElementById('srch-results');
 function setArea2(id){S.area=id;render();}
 function onQ(v){S.q=v;const el=document.getElementById('srch-results');if(!el)return;const byArea=b=>S.area==='all'||b.area===S.area;if(v){el.innerHTML=`<div class="sec-ttl">${t('검색 결과','Results')} (${getFiltered().length})</div>${renderTiered(getFiltered())}`;}else{const cats=(S.cats||DEFAULT_CATS).slice().sort((a,b)=>(a.sortOrder||99)-(b.sortOrder||99));el.innerHTML=`<div class="sec-ttl">${t('카테고리별 보기','Browse by Category')}</div><div class="cat-grid">${cats.map(c=>{const n=S.bizs.filter(bb=>bb.cat===c.id&&byArea(bb)).length;return`<div class="cat-item" onclick="goCat('${c.id}')"><span class="cat-icon">${c.ic}</span><span class="cat-name">${t(c.ko,c.en)}</span><span class="cat-cnt">${n}${t('개','')}</span></div>`;}).join('')}</div>`;}}
 function onQL(v){S.q=v;const el=document.getElementById('list-results');if(!el)return;const subs=S.cat?(SUBCATS[S.cat]||[]):[];el.innerHTML=(subs.length?`<div class="sub-bar"><button class="s-btn${!S.subcat?' on':''}" onclick="setSub(null)">${t('전체','All')}</button>${subs.map(s=>`<button class="s-btn${S.subcat===s?' on':''}" onclick="setSub('${s}')">${s}</button>`).join('')}</div>`:'')+renderTiered(getFiltered());}
-async function chkPw(){
+function chkPw(){
   const v=document.getElementById('pw')?.value;
-  if(!v){toast(t('비밀번호를 입력하세요','Enter password'));return;}
-  try{
-    const result=await supa.rpc('verify_admin',{pw:v});
-    if(result===true){
-      S.admin=true;
-      S.adminPw=v; // 메모리에만 저장 (RPC 호출용)
-      render();
-      toast(t('로그인 성공 ✅','Login success ✅'));
-    }else{
-      toast(t('비밀번호 오류 ❌','Wrong password ❌'));
-    }
-  }catch(e){
+  const storedPw = localStorage.getItem('kjigi_admin_pw') || 'Kjigi2025!@#';
+  if(v===storedPw){
+    S.admin=true;
+    S.adminPw=v;
+    render();
+    toast(t('로그인 성공 ✅','Login success ✅'));
+  }else{
     toast(t('비밀번호 오류 ❌','Wrong password ❌'));
   }
 }
