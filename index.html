@@ -1350,14 +1350,24 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 
 const supa = {
   async get(table) {
-    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?select=*&order=id`, {
-      headers: {
-        'apikey': SUPA_KEY, 
-        'Authorization': 'Bearer ' + SUPA_KEY,
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
-      }
-    });
-    return r.ok ? r.json() : [];
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10초 타임아웃
+    try {
+      const r = await fetch(`${SUPA_URL}/rest/v1/${table}?select=*&order=id`, {
+        headers: {
+          'apikey': SUPA_KEY, 
+          'Authorization': 'Bearer ' + SUPA_KEY,
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      return r.ok ? r.json() : [];
+    } catch(e) {
+      clearTimeout(timeout);
+      console.error('❌ 로드 실패:', table, e.message);
+      return [];
+    }
   },
   // RPC 호출 (보안 함수용)
   async rpc(fn, params) {
@@ -1523,7 +1533,10 @@ async function loadAll(){
   checkTierExpiry();
   render();
 }
-loadAll();
+loadAll().catch(e => {
+  console.error('❌ 로딩 에러:', e);
+  render(); // 에러 발생해도 렌더링
+});
 </script>
 </body>
 </html>
