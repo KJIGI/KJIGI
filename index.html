@@ -745,6 +745,7 @@ function bizFormHTML(prefix, b){
   const tiers=['premium','standard','free'].map(tr=>`<option value="${tr}"${b&&b.tier===tr?' selected':''}>${{premium:'🥇 '+t('프리미엄','Premium'),standard:'⭐ '+t('스탠다드','Standard'),free:'📋 '+t('무료','Free')}[tr]}</option>`).join('');
   const subs=(SUBCATS[b&&b.cat?b.cat:'restaurant']||[]).map(s=>`<option value="${s}"${b&&b.subcat===s?' selected':''}>${s}</option>`).join('');
   const curTier=b?b.tier:'free';
+  const isNew = !b;
   return`<div class="frow"><div class="fg"><label class="fl">${t('업체명','Name')}</label><input class="fi" id="${prefix}_nKo" value="${v('nKo')}" placeholder="${t('업체명','Name')}"></div>
 <div class="fg"><label class="fl">${t('티어','Tier')}</label><select class="fi" id="${prefix}_tier" onchange="toggleExpiryField('${prefix}',this.value)">${tiers}</select></div></div>
 <div class="expiry-box" id="${prefix}_expiryBox" style="display:${curTier!=='free'?'block':'none'}">
@@ -766,6 +767,15 @@ function bizFormHTML(prefix, b){
 <div class="fg" style="display:flex;align-items:flex-end;padding-bottom:3px"><label style="display:flex;align-items:center;gap:8px;font-size:var(--f-sm);cursor:pointer"><input type="checkbox" id="${prefix}_open" ${!b||b.open?'checked':''} style="width:16px;height:16px"> ${t('영업중','Open')}</label></div></div>
 <div class="fg"><label class="fl">${t('프로모션','Promo')}</label><input class="fi" id="${prefix}_promo" value="${v('promo')}"></div>
 <div class="fg"><label class="fl">${t('업체 설명','Desc')}</label><textarea class="fi" id="${prefix}_dKo" rows="2">${v('dKo')}</textarea></div>
+${isNew?`<div class="photo-section" style="background:#f8fafc;border-radius:10px;padding:14px;margin:12px 0">
+<div style="font-weight:700;margin-bottom:10px">📸 ${t('사진 등록','Photos')}</div>
+<div class="fg"><label class="fl">${t('대표 사진','Main Photo')}</label>
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+<div id="${prefix}_mainPreview" style="width:80px;height:80px;background:#e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:24px">📷</div>
+<div style="flex:1"><input type="file" accept="image/*" class="fi" style="padding:6px" onchange="onFormMainPhoto(this,'${prefix}')"></div></div></div>
+<div class="fg"><label class="fl">${t('메뉴/가격표','Menu Photos')} <span id="${prefix}_menuCnt">(0)</span></label>
+<div class="img-preview-grid" id="${prefix}_menuGrid"><label class="add-img-btn"><span>➕</span><span>${t('추가','Add')}</span><input type="file" accept="image/*" multiple style="display:none" onchange="onFormMenuPhoto(this,'${prefix}')"></label></div></div>
+</div>`:''}
 <div class="memo-box"><div class="memo-lbl">🔒 ${t('관리자 전용 메모','Admin Memo')} <span style="font-weight:400;color:#b45309">${t('(사용자에게 노출 안됨)','(Not visible to users)')}</span></div>
 <textarea class="fi" id="${prefix}_memo" rows="2" placeholder="${t('결제 날짜, 특이사항, 연락 기록 등...','Payment, notes, contact history...')}" style="border-color:#fde68a;background:#fffef5">${v('adminMemo')}</textarea></div>`;
 }
@@ -967,11 +977,12 @@ function submitBiz(){
   const btn = document.querySelector('.card-box .btn');
   if(btn) { btn.disabled = true; btn.textContent = t('등록 중...','Saving...'); }
   
-  const b={cat:g('f_cat')||'etc',subcat:g('f_subcat')||'',tier:g('f_tier')||'free',nKo,area:g('f_area')||'clark',phone:g('f_ph'),kakao:g('f_kk'),aKo:g('f_aKo'),dKo:g('f_dKo'),hrs:g('f_hrs')||'09:00-22:00',promo:g('f_promo'),adminMemo:g('f_memo'),tierExpiry:g('f_expiry'),photo:'',menuPhotos:[],grad:GR[Math.floor(Math.random()*GR.length)],lat:parseFloat(g('f_lat'))||15.18,lng:parseFloat(g('f_lng'))||120.54,mapLink:g('f_mapLink'),open:document.getElementById('f_open')?.checked??true};
+  const b={cat:g('f_cat')||'etc',subcat:g('f_subcat')||'',tier:g('f_tier')||'free',nKo,area:g('f_area')||'clark',phone:g('f_ph'),kakao:g('f_kk'),aKo:g('f_aKo'),dKo:g('f_dKo'),hrs:g('f_hrs')||'09:00-22:00',promo:g('f_promo'),adminMemo:g('f_memo'),tierExpiry:g('f_expiry'),photo:_formMainPhoto,menuPhotos:[..._formMenuPhotos],grad:GR[Math.floor(Math.random()*GR.length)],lat:parseFloat(g('f_lat'))||15.18,lng:parseFloat(g('f_lng'))||120.54,mapLink:g('f_mapLink'),open:document.getElementById('f_open')?.checked??true};
   
   S.bizs.push(b);
   saveBiz(b).then((result)=>{
     _submitting = false;
+    resetFormPhotos(); // 폼 사진 초기화
     toast(result ? t('✅ 등록 완료!','✅ Added!') : t('⚠️ 저장 실패','⚠️ Failed'));
     render();
   });
@@ -990,6 +1001,68 @@ async function saveEditBiz(id){
   closeModal();render();toast(t('✅ 수정됐습니다','✅ Saved'));
 }
 function delBiz(id){confirmModal(t('이 업체를 삭제할까요?','Delete this business?'),function(){S.bizs=S.bizs.filter(b=>b.id!==id);supa.delete('businesses',id);render();});}
+
+// ── 폼 사진 업로드 (새 업체 등록용) ──
+let _formMainPhoto = '';
+let _formMenuPhotos = [];
+
+function resetFormPhotos(){
+  _formMainPhoto = '';
+  _formMenuPhotos = [];
+}
+
+async function onFormMainPhoto(input, prefix){
+  const f = input.files[0]; if(!f) return;
+  console.log('📸 onFormMainPhoto 시작, prefix:', prefix, 'file:', f.name);
+  const preview = document.getElementById(prefix + '_mainPreview');
+  console.log('📸 preview 요소:', preview);
+  if(preview) preview.innerHTML = `<div style="font-size:14px">⏳</div>`;
+  
+  const url = await uploadImage(f);
+  console.log('📸 업로드 결과:', url);
+  if(url){
+    _formMainPhoto = url;
+    if(preview) preview.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover">`;
+    toast(t('✅ 대표사진 업로드 완료','✅ Main photo uploaded'));
+  } else {
+    if(preview) preview.innerHTML = `<span style="font-size:24px">❌</span>`;
+    toast(t('❌ 업로드 실패','❌ Upload failed'));
+  }
+}
+
+async function onFormMenuPhoto(input, prefix){
+  const files = Array.from(input.files);
+  console.log('📸 onFormMenuPhoto 시작, prefix:', prefix, 'files:', files.length);
+  toast(t('⏳ 업로드 중...','⏳ Uploading...'));
+  let success = 0;
+  for(const f of files){
+    const url = await uploadImage(f);
+    console.log('📸 메뉴 업로드 결과:', url);
+    if(url){
+      _formMenuPhotos.push(url);
+      success++;
+    }
+  }
+  console.log('📸 refreshFormMenuGrid 호출, _formMenuPhotos:', _formMenuPhotos);
+  refreshFormMenuGrid(prefix);
+  toast(t(`✅ ${success}장 업로드 완료`,`✅ ${success} uploaded`));
+}
+
+function removeFormMenuPhoto(i, prefix){
+  _formMenuPhotos.splice(i, 1);
+  refreshFormMenuGrid(prefix);
+}
+
+function refreshFormMenuGrid(prefix){
+  console.log('🔄 refreshFormMenuGrid 호출, prefix:', prefix);
+  const grid = document.getElementById(prefix + '_menuGrid');
+  const cnt = document.getElementById(prefix + '_menuCnt');
+  console.log('🔄 grid:', grid, 'cnt:', cnt);
+  if(cnt) cnt.textContent = `(${_formMenuPhotos.length})`;
+  if(!grid) { console.log('❌ grid 없음!'); return; }
+  grid.innerHTML = _formMenuPhotos.map((src,i) => `<div class="img-prev-item"><img src="${src}"><button class="rm-btn" onclick="removeFormMenuPhoto(${i},'${prefix}')">✕</button></div>`).join('') + `<label class="add-img-btn"><span>➕</span><span>${t('추가','Add')}</span><input type="file" accept="image/*" multiple style="display:none" onchange="onFormMenuPhoto(this,'${prefix}')"></label>`;
+  console.log('✅ 그리드 업데이트 완료');
+}
 
 // ── 사진 관리 ──
 let _tmpMenuPhotos=[];
