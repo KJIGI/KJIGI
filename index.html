@@ -1510,19 +1510,17 @@ function secretTap(){_tapCount++;clearTimeout(_tapTimer);if(_tapCount>=5){_tapCo
 function render(){const fn={home:renderHome,list:renderList,detail:renderDetail,admin:renderAdmin,notice:renderNotice,inquiry:renderInquiry};document.getElementById('app').innerHTML=(fn[S.screen]||renderHome)();document.getElementById('app').scrollTop=0;}
 
 // ══ SUPABASE 연결 ═════════════════════════════════════════════
-const SUPA_URL = 'https://aeklwexspqbgaedicyba.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFla2x3ZXhzcHFiZ2FlZGljeWJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNzQxNzgsImV4cCI6MjA4OTk1MDE3OH0.9LOh2rUIegdCDERaSQkh7htklbYbfAi_smmnwZMiC90';
+// ═══ Cloudflare Worker 보안 API ═══════════════════════════════════════
+const WORKER_URL = 'https://kjigi-api.philtour365.workers.dev';
+const ADMIN_PW = 'Kjigi2025!@#';
 
 const supa = {
+  // 읽기 (공개)
   async get(table, columns='*') {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000); // 15초 타임아웃
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-      const r = await fetch(`${SUPA_URL}/rest/v1/${table}?select=${columns}&order=id`, {
-        headers: {
-          'apikey': SUPA_KEY, 
-          'Authorization': 'Bearer ' + SUPA_KEY
-        },
+      const r = await fetch(`${WORKER_URL}/api/read/${table}?select=${columns}&order=id`, {
         signal: controller.signal
       });
       clearTimeout(timeout);
@@ -1535,42 +1533,27 @@ const supa = {
   },
   async getOne(table, id, columns='*') {
     try {
-      const r = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${id}&select=${columns}`, {
-        headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
-      });
+      const r = await fetch(`${WORKER_URL}/api/read/${table}?id=eq.${id}&select=${columns}`);
       const arr = r.ok ? await r.json() : [];
       return arr[0] || null;
     } catch(e) { return null; }
   },
-  // RPC 호출 (보안 함수용)
-  async rpc(fn, params) {
-    const r = await fetch(`${SUPA_URL}/rest/v1/rpc/${fn}`, {
-      method: 'POST',
-      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json'},
-      body: JSON.stringify(params)
-    });
-    if (!r.ok) {
-      const err = await r.text();
-      console.error('RPC Error:', err);
-      throw new Error(err);
-    }
-    return r.json();
-  },
+  // 쓰기 (비밀번호 필요)
   async insert(table, data) {
-    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+    const r = await fetch(`${WORKER_URL}/api/write/${table}`, {
       method: 'POST',
-      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation'},
+      headers: {'Content-Type': 'application/json', 'X-Admin-Pw': ADMIN_PW},
       body: JSON.stringify(data)
     });
     return r.ok ? r.json() : null;
   },
   async update(table, id, data) {
     console.log('🔧 UPDATE 요청:', table, 'id=' + id, data);
-    const url = `${SUPA_URL}/rest/v1/${table}?id=eq.${id}`;
+    const url = `${WORKER_URL}/api/write/${table}?id=eq.${id}`;
     console.log('🔧 URL:', url);
     const r = await fetch(url, {
       method: 'PATCH',
-      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation'},
+      headers: {'Content-Type': 'application/json', 'X-Admin-Pw': ADMIN_PW},
       body: JSON.stringify(data)
     });
     const body = await r.text();
@@ -1578,42 +1561,40 @@ const supa = {
     return r.ok;
   },
   async upsert(table, data, onConflict='id') {
-    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?on_conflict=${onConflict}`, {
+    const r = await fetch(`${WORKER_URL}/api/write/${table}?on_conflict=${onConflict}`, {
       method: 'POST',
-      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates'},
+      headers: {'Content-Type': 'application/json', 'X-Admin-Pw': ADMIN_PW, 'Prefer': 'resolution=merge-duplicates'},
       body: JSON.stringify(data)
     });
     return r.ok;
   },
   async delete(table, id) {
-    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?id=eq.${id}`, {
+    const r = await fetch(`${WORKER_URL}/api/write/${table}?id=eq.${id}`, {
       method: 'DELETE',
-      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
+      headers: {'X-Admin-Pw': ADMIN_PW}
     });
     return r.ok;
   },
   async deleteWhere(table, col, val) {
-    const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${col}=eq.${val}`, {
+    const r = await fetch(`${WORKER_URL}/api/write/${table}?${col}=eq.${val}`, {
       method: 'DELETE',
-      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
+      headers: {'X-Admin-Pw': ADMIN_PW}
     });
     return r.ok;
   },
   async getSetting(key) {
-    const r = await fetch(`${SUPA_URL}/rest/v1/settings?key=eq.${key}&select=value`, {
-      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
-    });
+    const r = await fetch(`${WORKER_URL}/api/read/settings?key=eq.${key}&select=value`);
     const d = r.ok ? await r.json() : [];
     return d[0]?.value || null;
   },
   async setSetting(key, value) {
-    await fetch(`${SUPA_URL}/rest/v1/settings?key=eq.${key}`, {
+    await fetch(`${WORKER_URL}/api/write/settings?key=eq.${key}`, {
       method: 'DELETE',
-      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY}
+      headers: {'X-Admin-Pw': ADMIN_PW}
     });
-    await fetch(`${SUPA_URL}/rest/v1/settings`, {
+    await fetch(`${WORKER_URL}/api/write/settings`, {
       method: 'POST',
-      headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json'},
+      headers: {'Content-Type': 'application/json', 'X-Admin-Pw': ADMIN_PW},
       body: JSON.stringify({key, value})
     });
   }
