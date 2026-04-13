@@ -33,11 +33,19 @@
 <meta name="twitter:image" content="https://kjigi.com/og-image.png">
 
 <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+<!-- PWA 설정 -->
 <link rel="manifest" href="/manifest.json">
-<link rel="apple-touch-icon" href="/icon-192.png">
 <meta name="theme-color" content="#059669">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="K지기">
+<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
+<link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192x192.png">
+
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
@@ -574,7 +582,7 @@ function renderHome(){
   ?`<div class="sec-ttl">${t('검색 결과','Results')} (${getFiltered().length})</div>${renderTiered(getFiltered())}`
   :`<div class="sec-ttl">${t('카테고리별 보기','Browse by Category')}</div><div class="cat-grid">${cats.map(c=>{const n=S.bizs.filter(bb=>bb.cat===c.id&&byArea(bb)).length;return`<div class="cat-item" onclick="goCat('${c.id}')"><span class="cat-icon">${c.ic}</span><span class="cat-name">${t(c.ko,c.en)}</span><span class="cat-cnt">${n}${t('개','')}</span></div>`;}).join('')}</div>`}
 </div>
-<div class="footer"><strong>K지기</strong> · 클락/앙헬레스 한인 업소 종합 가이드<br>📍 Angeles City, Pampanga, Philippines<br>💬 <a href="mailto:info@kjigi.com">info@kjigi.com</a><br><span style="font-size:10px;opacity:.6">© 2025 K지기 · kjigi.com · All rights reserved</span></div>`;
+<div class="footer"><strong>K지기</strong> · 클락/앙헬레스 한인 업소 종합 가이드<br>📍 Angeles City, Pampanga, Philippines<br>💬 <a href="mailto:info@kjigi.com">info@kjigi.com</a><br>📋 <a href="/privacy.html" style="color:#a7f3d0">개인정보처리방침</a><br><span style="font-size:10px;opacity:.6">© 2025 K지기 · kjigi.com · All rights reserved</span></div>`;
 }
 
 function renderList(){
@@ -1688,6 +1696,16 @@ async function loadAll(){
   checkTierExpiry();
   render();
 }
+
+// PWA 서비스 워커 등록
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(reg => console.log('✅ Service Worker 등록:', reg.scope))
+      .catch(err => console.log('❌ Service Worker 실패:', err));
+  });
+}
+
 loadAll().catch(e => {
   console.error('❌ 로딩 에러:', e);
   render(); // 에러 발생해도 렌더링
