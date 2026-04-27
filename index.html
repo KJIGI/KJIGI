@@ -97,10 +97,10 @@ body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg);co
 /* CAT GRID */
 .sec-ttl{padding:clamp(12px,3vw,18px) clamp(14px,3.5vw,22px) clamp(8px,2vw,12px);font-size:var(--f-md);font-weight:700;font-family:'Jua',sans-serif}
 .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--bd);margin-bottom:clamp(14px,3.5vw,22px)}
-.cat-item{background:var(--card);padding:clamp(10px,2.5vw,14px) clamp(4px,1vw,6px);display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vw,6px);cursor:pointer}
+.cat-item{background:var(--card);padding:clamp(10px,2.5vw,14px) clamp(4px,1vw,6px);display:flex;flex-direction:column;align-items:center;gap:clamp(4px,1vw,6px);cursor:pointer;min-width:0;overflow:hidden}
 .cat-item:active{background:#f0fdf4}
 .cat-icon{font-size:clamp(28px,7vw,40px)}
-.cat-name{font-size:clamp(13px,3.2vw,15px);font-weight:700;text-align:center;line-height:1.2;font-family:'Jua',sans-serif}
+.cat-name{font-size:clamp(11px,2.8vw,14px);font-weight:700;text-align:center;line-height:1.2;font-family:'Jua',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .cat-cnt{font-size:clamp(11px,2.8vw,13px);color:var(--t2)}
 
 /* LIST */
