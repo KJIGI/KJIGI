@@ -44,7 +44,7 @@ self.addEventListener('fetch', event => {
   }
 
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, {cache: 'no-cache'})
       .then(response => {
         // 성공하면 캐시에 저장
         if (response.status === 200) {
