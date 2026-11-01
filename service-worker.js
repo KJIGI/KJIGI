@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kjigi-v1';
+const CACHE_NAME = 'kjigi-v2';
 const urlsToCache = [
   '/',
   '/index.html',
