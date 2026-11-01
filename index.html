@@ -601,7 +601,7 @@ function renderDetail(){
   const tierBadge={premium:'🥇 PREMIUM',standard:'⭐ STANDARD',free:'📋 일반'}[b.tier]||'';
   const tierCol={premium:'#92400e',standard:'#5b21b6',free:'#64748b'}[b.tier];
   const tierBg={premium:'#fef3c7',standard:'#ede9fe',free:'#f1f5f9'}[b.tier];
-  const photoHtml=b.photo?`<img src="${b.photo}" alt="${nm(b)}">`:`<div class="det-photo-ph"><span>${ci(b.cat)}</span><p>${t('사진 없음','No Photo')}</p></div>`;
+  const photoHtml=b.photo?`<img src="${b.photo}" alt="${nm(b)}" onclick="openLightbox('${b.photo}')" style="cursor:pointer">`:`<div class="det-photo-ph"><span>${ci(b.cat)}</span><p>${t('사진 없음','No Photo')}</p></div>`;
   const menuHtml=(b.menuPhotos&&b.menuPhotos.length)?`<div class="divider"></div><div style="font-size:var(--f-sm);font-weight:700;margin-bottom:10px">📋 ${t('메뉴 / 가격표','Menu / Price List')}</div><div class="menu-imgs">${b.menuPhotos.map((src,i)=>`<div class="menu-img-item" onclick="openLightbox('${src}',${JSON.stringify(b.menuPhotos).replace(/"/g,'&quot;')},${i})"><img src="${src}" alt="menu"></div>`).join('')}</div>`:'';
   return`<div class="hdr"><button class="hdr-back" onclick="history.back()">←</button><span class="hdr-title">${nm(b)}</span><button class="lang-btn" onclick="toggleLang()">${S.lang==='ko'?'EN':'한'}</button></div>
 <div class="det-photo">${photoHtml}</div>
